@@ -1,10 +1,12 @@
-# Unity 2D Game - Player Controller
+# Overlord:Rise and Slice
 
-## Решение проблем с Input System
+## Unity 2D Game - Player Controller
 
-### Проблема: Персонаж не двигается
+### Решение проблем с Input System
 
-#### Вариант 1: Использование Input Action Asset
+#### Проблема: Персонаж не двигается
+
+##### Вариант 1: Использование Input Action Asset
 1. **Откройте Unity** и сцену `Overlord.unity`
 2. **Выберите объект игрока** в иерархии
 3. **В компоненте PlayerController**:
@@ -14,7 +16,7 @@
    - "Move action found successfully!"
    - "Dash action created successfully!"
 
-#### Вариант 2: Простое управление (рекомендуется)
+##### Вариант 2: Простое управление (рекомендуется)
 1. **Удалите компонент PlayerController** с объекта игрока
 2. **Добавьте компонент SimplePlayerController** к объекту игрока
 3. **Настройте параметры** в инспекторе:

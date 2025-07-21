@@ -1,4 +1,4 @@
-# Подключение проекта к GitHub
+# Подключение проекта Overlord:Rise and Slice к GitHub
 
 ## Шаг 1: Создание репозитория на GitHub
 
@@ -6,8 +6,8 @@
 2. Нажмите кнопку "New" или "+" в правом верхнем углу
 3. Выберите "New repository"
 4. Заполните форму:
-   - **Repository name**: `unity-2d-game`
-   - **Description**: `Unity 2D game with player controller and FPS control`
+   - **Repository name**: `Overlord-Rise-and-Slice`
+   - **Description**: `Unity 2D game - Overlord:Rise and Slice with player controller and FPS control`
    - **Visibility**: Public или Private (по вашему выбору)
    - **НЕ** ставьте галочки на "Add a README file", "Add .gitignore", "Choose a license"
 5. Нажмите "Create repository"
@@ -18,7 +18,7 @@
 
 ```bash
 # Добавить удаленный репозиторий (замените YOUR_USERNAME на ваше имя пользователя)
-git remote add origin https://github.com/YOUR_USERNAME/unity-2d-game.git
+git remote add origin https://github.com/YOUR_USERNAME/Overlord-Rise-and-Slice.git
 
 # Переименовать ветку в main (если нужно)
 git branch -M main

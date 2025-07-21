@@ -82,4 +82,7 @@ Thumbs.db
 *~
 
 # Unity specific
-/[Aa]ssets/[Ss]treamingAssets/aa/* 
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Embedded git repositories
+MyProject/ 

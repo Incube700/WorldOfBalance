@@ -28,19 +28,31 @@ public class TileSetupHelper : MonoBehaviour
         // Настройка слоев для правильного отображения
         if (floorTilemap != null)
         {
-            floorTilemap.sortingOrder = -1;
+            var floorRenderer = floorTilemap.GetComponent<TilemapRenderer>();
+            if (floorRenderer != null)
+            {
+                floorRenderer.sortingOrder = -1;
+            }
             floorTilemap.gameObject.name = "Floor Tilemap";
         }
         
         if (wallTilemap != null)
         {
-            wallTilemap.sortingOrder = 0;
+            var wallRenderer = wallTilemap.GetComponent<TilemapRenderer>();
+            if (wallRenderer != null)
+            {
+                wallRenderer.sortingOrder = 0;
+            }
             wallTilemap.gameObject.name = "Wall Tilemap";
         }
         
         if (decorationTilemap != null)
         {
-            decorationTilemap.sortingOrder = 1;
+            var decorationRenderer = decorationTilemap.GetComponent<TilemapRenderer>();
+            if (decorationRenderer != null)
+            {
+                decorationRenderer.sortingOrder = 1;
+            }
             decorationTilemap.gameObject.name = "Decoration Tilemap";
         }
         

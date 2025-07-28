@@ -152,7 +152,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 5
   rotationSpeed: 180
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 45678901234567890123456789012345, guid: 45678901234567890123456789012345, type: 3}
   firePoint: {fileID: 1234567890123456799}
   fireRate: 0.5
   projectileSpeed: 10

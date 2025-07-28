@@ -147,12 +147,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1234567890123456789}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8f7b3a2d1c4e5f6a7b8c9d0e1f2a3b4, type: 3}
+  m_Script: {fileID: 11500000, guid: 9fb158204d9549c498fb8ca3ba927d7e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
   rotationSpeed: 180
-  projectilePrefab: {fileID: 45678901234567890123456789012345, guid: 45678901234567890123456789012345, type: 3}
+  projectilePrefab: {fileID: 2ce46219f7094f4a819c5c603887bb52, guid: 2ce46219f7094f4a819c5c603887bb52, type: 3}
   firePoint: {fileID: 1234567890123456799}
   fireRate: 0.5
   projectileSpeed: 10
@@ -171,7 +171,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1234567890123456789}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c1f7e6h5g8i9j0c9d0e1f2a3b4c5d6e7f8, type: 3}
+  m_Script: {fileID: 11500000, guid: 8240138469534dc39ccad5674c04e342, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   frontArmor: 50
@@ -186,7 +186,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1234567890123456789}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3d2g8f7i6h9j0k1c9d0e1f2a3b4c5d6e7f8g9, type: 3}
+  m_Script: {fileID: 11500000, guid: 55d38d7d957d4a9cb0f230b2f31a5365, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100

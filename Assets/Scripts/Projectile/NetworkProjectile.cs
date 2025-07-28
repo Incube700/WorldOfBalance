@@ -39,6 +39,8 @@ namespace WorldOfBalance.Projectile
         private GameObject owner;
         private float currentDamage;
         private float currentPenetrationPower;
+        private int bounceCount = 0;
+        private const float ricochetThreshold = 70f; // порог угла рикошета
         
         // Свойства
         public Vector2 Direction => direction;
@@ -155,6 +157,15 @@ namespace WorldOfBalance.Projectile
         [Server]
         private void HandlePlayerHit(NetworkPlayerController player, float collisionAngle, Vector2 normal)
         {
+            float ricochetAngle = Vector2.Angle(-direction, normal);
+            if (ricochetAngle > ricochetThreshold)
+            {
+                Ricochet(normal);
+                RpcSpawnRicochetEffect(transform.position, direction);
+                Debug.Log("Projectile ricocheted due to steep angle!");
+                return;
+            }
+            
             // Получаем систему брони игрока
             ArmorSystem armorSystem = player.GetComponent<ArmorSystem>();
             if (armorSystem == null)
@@ -196,19 +207,17 @@ namespace WorldOfBalance.Projectile
         [Server]
         private void HandleWallHit(float collisionAngle, Vector2 normal)
         {
-            // Если угол меньше порога рикошета - снаряд рикошетит
-            if (collisionAngle < ricochetThreshold)
+            float ricochetAngle = Vector2.Angle(-direction, normal);
+            if (ricochetAngle > ricochetThreshold)
             {
                 Ricochet(normal);
                 RpcSpawnRicochetEffect(transform.position, direction);
-                Debug.Log($"Projectile ricocheted from wall at angle: {collisionAngle}°");
+                return;
             }
             else
             {
-                // Снаряд застревает в стене
                 RpcSpawnHitEffect(transform.position, direction);
-                Debug.Log($"Projectile stuck in wall at angle: {collisionAngle}°");
-                DestroyProjectile();
+                NetworkServer.Destroy(gameObject);
             }
         }
         
@@ -219,13 +228,13 @@ namespace WorldOfBalance.Projectile
         private void Ricochet(Vector2 normal)
         {
             // Вычисляем направление отскока
-            Vector2 reflection = Vector2.Reflect(direction, normal);
+            Vector2 reflectedDirection = Vector2.Reflect(direction, normal).normalized;
             
             // Применяем силу отскока
-            Vector2 newVelocity = reflection * speed * bounceForce;
+            Vector2 newVelocity = reflectedDirection * speed * bounceForce;
             
             // Обновляем направление и скорость
-            direction = reflection.normalized;
+            direction = reflectedDirection;
             networkDirection = direction;
             
             if (rb != null)
@@ -238,6 +247,14 @@ namespace WorldOfBalance.Projectile
             currentPenetrationPower *= 0.8f;
             networkDamage = currentDamage;
             networkPenetrationPower = currentPenetrationPower;
+            
+            bounceCount++;
+            if (bounceCount >= 3)
+            {
+                currentPenetrationPower = 0f;
+                networkPenetrationPower = currentPenetrationPower;
+                Debug.Log("Projectile lost penetration after 3 bounces");
+            }
             
             Debug.Log($"Projectile ricocheted! New direction: {direction}, New damage: {currentDamage}");
             

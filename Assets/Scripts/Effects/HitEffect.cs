@@ -51,11 +51,11 @@ namespace WorldOfBalance.Effects
             {
                 Destroy(gameObject);
             }
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Запуск эффекта
-        /// </summary>
+    /// </summary>
         private void StartEffect()
         {
             // Запускаем систему частиц
@@ -66,11 +66,11 @@ namespace WorldOfBalance.Effects
             
             // Устанавливаем начальный размер
             transform.localScale = Vector3.zero;
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Обновление эффекта
-        /// </summary>
+    /// </summary>
         private void UpdateEffect()
         {
             float progress = currentLifetime / lifetime;
@@ -99,11 +99,11 @@ namespace WorldOfBalance.Effects
                 float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
                 transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
             }
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Установка цвета эффекта
-        /// </summary>
+    /// </summary>
         public void SetColor(Color color)
         {
             if (spriteRenderer != null)

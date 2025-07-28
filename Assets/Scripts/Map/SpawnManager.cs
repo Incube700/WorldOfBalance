@@ -4,13 +4,13 @@ using WorldOfBalance.Player;
 
 namespace WorldOfBalance.Map
 {
-    /// <summary>
+/// <summary>
     /// Менеджер респауна игроков для PvP-игры "Мир Баланса"
     /// Управляет созданием игроков и их размещением на карте
-    /// </summary>
+/// </summary>
     public class SpawnManager : NetworkBehaviour
-    {
-        [Header("Spawn Points")]
+{
+    [Header("Spawn Points")]
         [SerializeField] private Transform spawnPointA;
         [SerializeField] private Transform spawnPointB;
         [SerializeField] private Transform[] additionalSpawnPoints; // Для будущего расширения до 4 игроков
@@ -58,11 +58,11 @@ namespace WorldOfBalance.Map
                 int spawnIndex = (currentPlayerCount - 2) % additionalSpawnPoints.Length;
                 return additionalSpawnPoints[spawnIndex];
             }
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Создание игрока в указанной точке
-        /// </summary>
+    /// </summary>
         [Server]
         public GameObject SpawnPlayer(Transform spawnPoint)
         {
@@ -92,11 +92,11 @@ namespace WorldOfBalance.Map
             Debug.Log($"Игрок создан в позиции {spawnPoint.name}. Всего игроков: {currentPlayerCount}");
             
             return player;
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Настройка цвета игрока
-        /// </summary>
+    /// </summary>
         [Server]
         private void SetupPlayerColor(GameObject player, int playerIndex)
         {
@@ -138,11 +138,11 @@ namespace WorldOfBalance.Map
             }
             
             Debug.Log($"Игрок {player.name} респаунен в позиции {spawnPoint.name}");
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Создание арены с препятствиями
-        /// </summary>
+    /// </summary>
         [Server]
         public void CreateArena()
         {
@@ -216,11 +216,11 @@ namespace WorldOfBalance.Map
             
             // Спавним в сети
             NetworkServer.Spawn(wall);
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Очистка арены
-        /// </summary>
+    /// </summary>
         [Server]
         public void ClearArena()
         {
@@ -232,11 +232,11 @@ namespace WorldOfBalance.Map
             }
             
             Debug.Log("Арена очищена");
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Получение размера арены
-        /// </summary>
+    /// </summary>
         public Vector2 GetArenaSize()
         {
             return arenaSize;
@@ -249,11 +249,11 @@ namespace WorldOfBalance.Map
         {
             return Mathf.Abs(position.x) <= arenaSize.x / 2 && 
                    Mathf.Abs(position.y) <= arenaSize.y / 2;
-        }
-        
-        /// <summary>
+    }
+    
+    /// <summary>
         /// Визуализация арены в редакторе
-        /// </summary>
+    /// </summary>
         private void OnDrawGizmos()
         {
             // Границы арены

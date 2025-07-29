@@ -102,11 +102,11 @@ Rigidbody2D:
   m_LinearDrag: 0
   m_AngularDrag: 0.05
   m_GravityScale: 0
-  m_Material: {fileID: 0}
-  m_Interpolate: 0
-  m_SleepingMode: 1
   m_CollisionDetection: 0
+  m_SleepingMode: 1
+  m_Interpolate: 0
   m_Constraints: 4
+  m_Info: 0
 --- !u!61 &3456789012345678905
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -143,4 +143,4 @@ MonoBehaviour:
   bounceForce: 0.8
   collisionLayers: 0
   hitEffectPrefab: {fileID: 0}
-  ricochetEffectPrefab: {fileID: 0} 
+  ricochetEffectPrefab: {fileID: 0}

@@ -1,112 +1,119 @@
 using UnityEngine;
 
-namespace WorldOfBalance.Projectile
+public class Projectile : MonoBehaviour
 {
-    public class Projectile : MonoBehaviour
+    [Header("Projectile Settings")]
+    [SerializeField] private float speed = 10f;
+    [SerializeField] private float damage = 10f;
+    [SerializeField] private float penetrationPower = 50f;
+    [SerializeField] private float lifetime = 10f;
+    
+    [Header("Ricochet Settings")]
+    [SerializeField] private float ricochetThreshold = 70f;
+    [SerializeField] private int maxBounces = 3;
+    
+    private Vector2 direction;
+    private GameObject owner;
+    private Rigidbody2D rb;
+    private int bounceCount = 0;
+    
+    private void Start()
     {
-        [Header("Projectile Settings")]
-        [SerializeField] private float speed = 10f;
-        [SerializeField] private float damage = 10f;
-        [SerializeField] private float penetrationPower = 50f;
-        [SerializeField] private float lifetime = 10f;
+        rb = GetComponent<Rigidbody2D>();
+        Destroy(gameObject, lifetime);
+    }
+    
+    public void Initialize(Vector2 dir, float spd, float dmg, float penetration, GameObject ownerObj)
+    {
+        direction = dir.normalized;
+        speed = spd;
+        damage = dmg;
+        penetrationPower = penetration;
+        owner = ownerObj;
         
-        [Header("Ricochet Settings")]
-        [SerializeField] private float ricochetThreshold = 70f;
-        [SerializeField] private int maxBounces = 3;
-        
-        private Vector2 direction;
-        private GameObject owner;
-        private Rigidbody2D rb;
-        private int bounceCount = 0;
-        
-        private void Start()
+        if (rb != null)
         {
-            rb = GetComponent<Rigidbody2D>();
-            Destroy(gameObject, lifetime);
+            rb.linearVelocity = direction * speed;
+        }
+    }
+    
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // Не сталкиваемся с владельцем снаряда
+        if (collision.gameObject == owner) return;
+        
+        Vector2 normal = collision.contacts[0].normal;
+        float collisionAngle = Vector2.Angle(-direction, normal);
+        
+        // Проверяем, нужно ли рикошетить
+        if (collisionAngle > ricochetThreshold && bounceCount < maxBounces)
+        {
+            Ricochet(normal);
+            return;
         }
         
-        public void Initialize(Vector2 dir, float spd, float dmg, float penetration, GameObject ownerObj)
+        // Проверяем, попали ли в игрока или врага
+        if (collision.gameObject.CompareTag("Player") || collision.gameObject.CompareTag("Enemy"))
         {
-            direction = dir.normalized;
-            speed = spd;
-            damage = dmg;
-            penetrationPower = penetration;
-            owner = ownerObj;
-            
-            if (rb != null)
-            {
-                rb.linearVelocity = direction * speed;
-            }
+            HandlePlayerHit(collision.gameObject, normal);
+        }
+        else
+        {
+            // Попадание в стену или землю
+            HandleWallHit(normal);
+        }
+    }
+    
+    private void Ricochet(Vector2 normal)
+    {
+        Vector2 reflectedDirection = Vector2.Reflect(direction, normal).normalized;
+        direction = reflectedDirection;
+        
+        if (rb != null)
+        {
+            rb.linearVelocity = direction * speed;
         }
         
-        private void OnCollisionEnter2D(Collision2D collision)
-        {
-            // Не сталкиваемся с владельцем снаряда
-            if (collision.gameObject == owner) return;
-            
-            Vector2 normal = collision.contacts[0].normal;
-            float collisionAngle = Vector2.Angle(-direction, normal);
-            
-            // Проверяем, нужно ли рикошетить
-            if (collisionAngle > ricochetThreshold && bounceCount < maxBounces)
-            {
-                Ricochet(normal);
-                return;
-            }
-            
-            // Проверяем, попали ли в игрока или врага
-            if (collision.gameObject.CompareTag("Player") || collision.gameObject.CompareTag("Enemy"))
-            {
-                HandlePlayerHit(collision.gameObject, normal);
-            }
-            else
-            {
-                // Попадание в стену или землю
-                HandleWallHit(normal);
-            }
-        }
+        bounceCount++;
         
-        private void Ricochet(Vector2 normal)
-        {
-            Vector2 reflectedDirection = Vector2.Reflect(direction, normal).normalized;
-            direction = reflectedDirection;
-            
-            if (rb != null)
-            {
-                rb.linearVelocity = direction * speed;
-            }
-            
-            bounceCount++;
-            
-            // Уменьшаем пробивную способность после рикошета
-            penetrationPower *= 0.8f;
-            
-            Debug.Log($"Projectile ricocheted! Bounce count: {bounceCount}");
-            
-            // Если превышен лимит отскоков, уничтожаем снаряд
-            if (bounceCount >= maxBounces)
-            {
-                Destroy(gameObject);
-            }
-        }
+        // Уменьшаем пробивную способность после рикошета
+        penetrationPower *= 0.8f;
         
-        private void HandlePlayerHit(GameObject target, Vector2 normal)
+        Debug.Log($"Projectile ricocheted! Bounce count: {bounceCount}");
+        
+        // Если превышен лимит отскоков, уничтожаем снаряд
+        if (bounceCount >= maxBounces)
         {
-            // Получаем компонент здоровья цели
-            HealthSystem healthSystem = target.GetComponent<HealthSystem>();
-            if (healthSystem != null)
+            Destroy(gameObject);
+        }
+    }
+    
+    private void HandlePlayerHit(GameObject target, Vector2 normal)
+    {
+        // Получаем компонент здоровья цели
+        var healthSystem = target.GetComponent<MonoBehaviour>();
+        if (healthSystem != null && healthSystem.GetType().Name == "HealthSystem")
+        {
+            // Проверяем броню
+            var armorSystem = target.GetComponent<MonoBehaviour>();
+            if (armorSystem != null && armorSystem.GetType().Name == "ArmorSystem")
             {
-                // Проверяем броню
-                ArmorSystem armorSystem = target.GetComponent<ArmorSystem>();
-                if (armorSystem != null)
+                Vector2 playerForward = target.transform.right;
+                
+                // Используем reflection для вызова метода
+                var method = armorSystem.GetType().GetMethod("GetEffectiveArmor");
+                if (method != null)
                 {
-                    Vector2 playerForward = target.transform.right;
-                    float effectiveArmor = armorSystem.GetEffectiveArmor(-direction, playerForward);
+                    float effectiveArmor = (float)method.Invoke(armorSystem, new object[] { -direction, playerForward });
                     
                     if (penetrationPower >= effectiveArmor)
                     {
                         // Пробиваем броню
-                        healthSystem.TakeDamage(damage);
+                        var takeDamageMethod = healthSystem.GetType().GetMethod("TakeDamage");
+                        if (takeDamageMethod != null)
+                        {
+                            takeDamageMethod.Invoke(healthSystem, new object[] { damage });
+                        }
                         Debug.Log($"Hit {target.name} for {damage} damage! Armor: {effectiveArmor}, Penetration: {penetrationPower}");
                     }
                     else
@@ -117,20 +124,24 @@ namespace WorldOfBalance.Projectile
                         return;
                     }
                 }
-                else
+            }
+            else
+            {
+                // Нет брони - наносим урон
+                var takeDamageMethod = healthSystem.GetType().GetMethod("TakeDamage");
+                if (takeDamageMethod != null)
                 {
-                    // Нет брони - наносим урон
-                    healthSystem.TakeDamage(damage);
+                    takeDamageMethod.Invoke(healthSystem, new object[] { damage });
                 }
             }
-            
-            Destroy(gameObject);
         }
         
-        private void HandleWallHit(Vector2 normal)
-        {
-            // Простое отражение от стен
-            Ricochet(normal);
-        }
+        Destroy(gameObject);
+    }
+    
+    private void HandleWallHit(Vector2 normal)
+    {
+        // Простое отражение от стен
+        Ricochet(normal);
     }
 }

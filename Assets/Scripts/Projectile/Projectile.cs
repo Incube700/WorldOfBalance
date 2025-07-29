@@ -35,7 +35,7 @@ namespace WorldOfBalance.Projectile
             
             if (rb != null)
             {
-                rb.velocity = direction * speed;
+                rb.linearVelocity = direction * speed;
             }
         }
         
@@ -73,7 +73,7 @@ namespace WorldOfBalance.Projectile
             
             if (rb != null)
             {
-                rb.velocity = direction * speed;
+                rb.linearVelocity = direction * speed;
             }
             
             bounceCount++;

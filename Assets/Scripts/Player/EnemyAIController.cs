@@ -52,7 +52,7 @@ namespace WorldOfBalance.Player
             // Простое преследование игрока
             Vector2 direction = (target.position - transform.position).normalized;
             Vector2 movement = direction * moveSpeed;
-            rb.velocity = movement;
+            rb.linearVelocity = movement;
             
             // Поворачиваемся к игроку
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;

@@ -99,7 +99,7 @@ namespace WorldOfBalance.Effects
                 Rigidbody2D sparkRb = spark.GetComponent<Rigidbody2D>();
                 if (sparkRb != null)
                 {
-                    sparkRb.velocity = direction * sparkSpeed;
+                    sparkRb.linearVelocity = direction * sparkSpeed;
                 }
                 
                 // Уничтожаем искру через время

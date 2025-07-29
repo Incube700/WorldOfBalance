@@ -40,7 +40,7 @@ public class PlayerController : MonoBehaviour
         float vertical = Input.GetAxis("Vertical");
         
         Vector2 movement = new Vector2(horizontal, vertical).normalized * moveSpeed;
-        rb.velocity = movement;
+        rb.linearVelocity = movement;
         
         // Если нет движения, обрабатываем поворот корпуса
         if (movement.magnitude < 0.1f && isRotating)

@@ -1,6 +1,7 @@
 using UnityEngine;
+using Mirror;
 
-public class PlayerController : MonoBehaviour
+public class TankController : NetworkBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private float moveForce = 1000f;
@@ -10,23 +11,19 @@ public class PlayerController : MonoBehaviour
     [Header("Combat Settings")]
     [SerializeField] private float fireRate = 0.5f;
     [SerializeField] private GameObject projectilePrefab;
+    [SerializeField] private Transform firePoint;
     
-    [Header("References")]
-    [SerializeField] private TurretController turret;
+    [Header("Components")]
+    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] private HealthSystem healthSystem;
+    [SerializeField] private ArmorSystem armorSystem;
+    [SerializeField] private ProjectileSpawner projectileSpawner;
     
-    private Rigidbody2D rb;
     private float lastFireTime;
     private Camera mainCamera;
     
-    private void Start()
+    public override void OnStartLocalPlayer()
     {
-        rb = GetComponent<Rigidbody2D>();
-        
-        // Находим пушку, если не назначена
-        if (turret == null)
-            turret = GetComponentInChildren<TurretController>();
-            
-        // Находим камеру
         mainCamera = Camera.main;
         if (mainCamera != null)
         {
@@ -35,31 +32,42 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    private void Update()
+    void Start()
     {
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
+        if (healthSystem == null) healthSystem = GetComponent<HealthSystem>();
+        if (armorSystem == null) armorSystem = GetComponent<ArmorSystem>();
+        if (projectileSpawner == null) projectileSpawner = GetComponent<ProjectileSpawner>();
+    }
+    
+    void Update()
+    {
+        if (!isLocalPlayer) return;
+        
         HandleMovement();
         HandleShooting();
     }
     
-    private void HandleMovement()
+    void HandleMovement()
     {
-        // Получаем ввод для движения
+        // Get input
         float horizontal = Input.GetAxis("Horizontal");
         float vertical = Input.GetAxis("Vertical");
         
+        // Movement
         Vector2 movement = new Vector2(horizontal, vertical).normalized;
         if (movement.magnitude > 0.1f)
         {
-            // Применяем силу для движения
+            // Apply force for movement
             rb.AddForce(movement * moveForce * Time.deltaTime);
             
-            // Ограничиваем скорость
+            // Limit speed
             if (rb.linearVelocity.magnitude > maxSpeed)
             {
                 rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
             }
             
-            // Поворачиваем в направлении движения
+            // Rotate towards movement direction
             float angle = Mathf.Atan2(movement.y, movement.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation, 
@@ -69,43 +77,22 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    private void HandleShooting()
+    void HandleShooting()
     {
-        // Стреляем по клику мыши
         if (Input.GetMouseButtonDown(0) && CanFire())
         {
-            FireProjectile();
+            Vector2 fireDirection = GetFireDirection();
+            CmdFire(fireDirection);
+            lastFireTime = Time.time;
         }
     }
     
-    private bool CanFire()
+    bool CanFire()
     {
         return Time.time - lastFireTime >= fireRate;
     }
     
-    private void FireProjectile()
-    {
-        if (projectilePrefab == null) return;
-        
-        lastFireTime = Time.time;
-        
-        // Получаем направление выстрела от мыши
-        Vector2 fireDirection = GetFireDirection();
-        
-        // Создаем снаряд
-        Vector3 spawnPosition = transform.position + (Vector3)(fireDirection * 0.5f);
-        GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
-        
-        Projectile projectileComponent = projectile.GetComponent<Projectile>();
-        if (projectileComponent != null)
-        {
-            projectileComponent.Initialize(fireDirection, gameObject);
-        }
-        
-        Debug.Log($"Player fired projectile! Direction: {fireDirection}");
-    }
-    
-    private Vector2 GetFireDirection()
+    Vector2 GetFireDirection()
     {
         if (mainCamera == null) return transform.right;
         
@@ -116,13 +103,25 @@ public class PlayerController : MonoBehaviour
         return direction;
     }
     
+    [Command]
+    void CmdFire(Vector2 direction)
+    {
+        if (projectileSpawner != null)
+        {
+            projectileSpawner.SpawnProjectile(direction, gameObject);
+        }
+    }
+    
     public void TakeDamage(float damage, Vector2 hitPoint, GameObject attacker)
     {
-        Debug.Log($"{gameObject.name} took {damage} damage from {attacker.name}");
+        if (healthSystem != null)
+        {
+            healthSystem.TakeDamage(damage, hitPoint, attacker);
+        }
     }
     
     public bool IsDead()
     {
-        return false; // Пока нет системы здоровья
+        return healthSystem != null && healthSystem.IsDead();
     }
 }

@@ -3,8 +3,9 @@ using UnityEngine;
 public class EnemyAIController : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 3f;
-    [SerializeField] private float rotationSpeed = 90f; // градусов в секунду
+    [SerializeField] private float moveForce = 800f;
+    [SerializeField] private float maxSpeed = 6f;
+    [SerializeField] private float rotationSpeed = 180f;
     
     [Header("Combat")]
     [SerializeField] private float fireRate = 1f;
@@ -15,8 +16,6 @@ public class EnemyAIController : MonoBehaviour
     private Rigidbody2D rb;
     private Transform firePoint;
     private EnemyTurretController turret;
-    private float targetRotation;
-    private bool isRotating = false;
     
     private void Start()
     {
@@ -44,7 +43,6 @@ public class EnemyAIController : MonoBehaviour
         
         HandleMovement();
         HandleShooting();
-        HandleRotation();
     }
     
     private void HandleMovement()
@@ -52,24 +50,26 @@ public class EnemyAIController : MonoBehaviour
         if (target == null) return;
         
         Vector2 direction = (target.position - transform.position).normalized;
-        Vector2 movement = direction * moveSpeed;
-        rb.linearVelocity = movement;
-    }
-    
-    private void HandleRotation()
-    {
-        if (!isRotating) return;
         
-        float currentRotation = transform.eulerAngles.z;
-        float newRotation = Mathf.MoveTowardsAngle(currentRotation, targetRotation, rotationSpeed * Time.deltaTime);
-        transform.rotation = Quaternion.Euler(0, 0, newRotation);
+        // Применяем силу для движения
+        rb.AddForce(direction * moveForce * Time.deltaTime);
         
-        if (Mathf.Abs(Mathf.DeltaAngle(currentRotation, targetRotation)) < 1f)
+        // Ограничиваем скорость
+        if (rb.linearVelocity.magnitude > maxSpeed)
         {
-            isRotating = false;
+            rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
         }
         
-        Debug.Log($"Enemy: Rotating to {targetRotation:F1}°, Current: {newRotation:F1}°");
+        // Поворачиваем в направлении движения
+        if (direction.magnitude > 0.1f)
+        {
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation, 
+                Quaternion.Euler(0, 0, angle), 
+                rotationSpeed * Time.deltaTime
+            );
+        }
     }
     
     private void HandleShooting()
@@ -84,35 +84,38 @@ public class EnemyAIController : MonoBehaviour
     
     private bool CanFire()
     {
-        return turret != null && turret.IsAimedAtTarget();
+        return true; // Упрощенная проверка
     }
     
     private void FireProjectile()
     {
-        if (projectilePrefab == null || turret == null) return;
+        if (projectilePrefab == null) return;
         
         lastFireTime = Time.time;
         
-        Transform firePoint = turret.GetFirePoint();
-        Vector2 fireDirection = turret.GetFireDirection();
+        // Получаем направление к цели
+        Vector2 fireDirection = (target.position - transform.position).normalized;
         
-        GameObject projectile = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
+        // Создаем снаряд
+        Vector3 spawnPosition = transform.position + (Vector3)(fireDirection * 0.5f);
+        GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
         
         Projectile projectileComponent = projectile.GetComponent<Projectile>();
         if (projectileComponent != null)
         {
-            projectileComponent.Initialize(fireDirection, 8f, 8f, 40f, gameObject);
+            projectileComponent.Initialize(fireDirection, gameObject);
         }
         
         Debug.Log("Enemy fired projectile!");
     }
     
-    public void RotateTowardsDirection(Vector2 direction)
+    public void TakeDamage(float damage, Vector2 hitPoint, GameObject attacker)
     {
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        targetRotation = angle;
-        isRotating = true;
-        
-        Debug.Log($"Enemy: Starting rotation to {targetRotation:F1}°");
+        Debug.Log($"{gameObject.name} took {damage} damage from {attacker.name}");
+    }
+    
+    public bool IsDead()
+    {
+        return false; // Пока нет системы здоровья
     }
 }

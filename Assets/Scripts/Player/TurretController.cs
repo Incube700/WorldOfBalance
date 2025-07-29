@@ -19,7 +19,7 @@ public class TurretController : MonoBehaviour
         playerController = GetComponentInParent<PlayerController>();
         
         if (playerTransform == null)
-            playerController = GetComponentInParent<PlayerController>();
+            playerTransform = transform.parent; // Set to parent transform if not assigned
     }
     
     private void Update()
@@ -29,7 +29,7 @@ public class TurretController : MonoBehaviour
     
     private void HandleTurretRotation()
     {
-        if (mainCamera == null) return;
+        if (mainCamera == null || playerTransform == null) return;
         
         // Получаем позицию мыши в мировых координатах
         Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(Input.mousePosition);
@@ -47,16 +47,9 @@ public class TurretController : MonoBehaviour
         // Ограничиваем угол поворота пушки
         float clampedAngle = Mathf.Clamp(angleToMouse, -maxRotationAngle, maxRotationAngle);
         
-        // Если угол превышает лимит, поворачиваем корпус
+        // Если угол превышает лимит, просто ограничиваем поворот пушки
         if (Mathf.Abs(angleToMouse) > maxRotationAngle)
         {
-            // Вызываем поворот корпуса в PlayerController
-            if (playerController != null)
-            {
-                playerController.RotateTowardsDirection(directionToMouse);
-            }
-            
-            // Пушка остается на границе
             clampedAngle = Mathf.Sign(angleToMouse) * maxRotationAngle;
         }
         
@@ -73,7 +66,7 @@ public class TurretController : MonoBehaviour
     
     public bool IsAimedAtTarget()
     {
-        if (mainCamera == null) return false;
+        if (mainCamera == null || playerTransform == null) return false;
         
         Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(Input.mousePosition);
         mouseWorldPosition.z = 0f;

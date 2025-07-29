@@ -23,7 +23,7 @@ public class EnemyTurretController : MonoBehaviour
         enemyAI = GetComponentInParent<EnemyAIController>();
 
         if (enemyTransform == null)
-            enemyTransform = transform.parent; // Ensure enemyTransform is set
+            enemyTransform = transform.parent; // Set to parent transform if not assigned
 
         if (target == null)
         {
@@ -61,17 +61,16 @@ public class EnemyTurretController : MonoBehaviour
         Vector2 enemyForward = enemyTransform.right;
         float angleToTarget = Vector2.SignedAngle(enemyForward, lastTargetDirection);
 
+        // Ограничиваем угол поворота башни
         float clampedAngle = Mathf.Clamp(angleToTarget, -maxRotationAngle, maxRotationAngle);
 
+        // Если цель вне угла обзора башни, просто поворачиваем башню на максимальный угол
         if (Mathf.Abs(angleToTarget) > maxRotationAngle)
         {
-            if (enemyAI != null)
-            {
-                enemyAI.RotateTowardsDirection(lastTargetDirection);
-            }
             clampedAngle = Mathf.Sign(angleToTarget) * maxRotationAngle;
         }
 
+        // Поворачиваем башню
         float targetRotation = enemyTransform.eulerAngles.z + clampedAngle;
         float currentRotation = transform.eulerAngles.z;
 

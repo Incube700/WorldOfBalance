@@ -1,46 +1,39 @@
 using UnityEngine;
 using Mirror;
+using System;
 using WorldOfBalance.Player;
-using WorldOfBalance.Map;
-using WorldOfBalance.UI;
 
 namespace WorldOfBalance.Systems
 {
-    /// <summary>
-    /// Сетевой менеджер игры для PvP-игры "Мир Баланса"
-    /// Управляет состоянием игры, победой и синхронизацией
-    /// </summary>
     public class NetworkGameManager : NetworkBehaviour
     {
         [Header("Game Settings")]
         [SerializeField] private float matchDuration = 300f; // 5 минут
-        [SerializeField] private int maxScore = 10;
-        [SerializeField] private float respawnDelay = 3f;
+        [SerializeField] private bool isGamePaused = false;
+        [SerializeField] private bool isGameOver = false;
         
-        [Header("UI References")]
-        [SerializeField] private GameObject gameUI;
-        [SerializeField] private GameObject pauseMenu;
-        [SerializeField] private GameObject gameOverMenu;
-        [SerializeField] private GameHUD gameHUD;
+        [Header("Scores")]
+        [SerializeField] private int player1Score = 0;
+        [SerializeField] private int player2Score = 0;
         
-        [Header("Managers")]
-        [SerializeField] private SpawnManager spawnManager;
-        
-        // Сетевые переменные
-        [SyncVar] private float currentMatchTime;
-        [SyncVar] private bool isGamePaused = false;
-        [SyncVar] private bool isGameOver = false;
+        // Network synchronization
+        [SyncVar] private float networkMatchTime;
+        [SyncVar] private bool networkIsGamePaused;
+        [SyncVar] private bool networkIsGameOver;
         [SyncVar] private string gameOverReason = "";
-        [SyncVar] private int player1Score = 0;
-        [SyncVar] private int player2Score = 0;
         
-        // Локальные переменные
-        private NetworkPlayerController localPlayer;
-        private bool isLocalGamePaused = false;
+        // Events
+        public event Action<string> OnGameOver;
+        public event Action OnGameRestarted;
+        public event Action<bool> OnPauseStateChanged;
         
-        // События
-        public System.Action<string> OnGameOver;
-        public System.Action OnPlayerRespawned;
+        // Properties
+        public float MatchTime => networkMatchTime;
+        public bool IsGamePaused => networkIsGamePaused;
+        public bool IsGameOver => networkIsGameOver;
+        public string GameOverReason => gameOverReason;
+        public int Player1Score => player1Score;
+        public int Player2Score => player2Score;
         
         private void Start()
         {
@@ -52,66 +45,60 @@ namespace WorldOfBalance.Systems
         
         private void Update()
         {
-            if (isServer)
+            if (!isServer) return;
+            
+            if (!isGamePaused && !isGameOver)
             {
                 UpdateMatchTimer();
-                CheckGameOverConditions();
-            }
-            
-            if (isLocalPlayer)
-            {
-                HandleInput();
             }
         }
         
         /// <summary>
-        /// Инициализация игры на сервере
+        /// Инициализирует игру на сервере
         /// </summary>
         [Server]
         private void InitializeGame()
         {
-            currentMatchTime = matchDuration;
-            isGamePaused = false;
-            isGameOver = false;
+            networkMatchTime = matchDuration;
+            networkIsGamePaused = false;
+            networkIsGameOver = false;
             gameOverReason = "";
+            
             player1Score = 0;
             player2Score = 0;
             
-            // Создаем арену
-            if (spawnManager != null)
-            {
-                spawnManager.CreateArena();
-            }
-            
-            Debug.Log("Сетевая игра инициализирована!");
+            Debug.Log("Game initialized!");
         }
         
         /// <summary>
-        /// Обновление таймера матча на сервере
+        /// Обновляет таймер матча
         /// </summary>
         [Server]
         private void UpdateMatchTimer()
         {
-            if (isGamePaused || isGameOver) return;
+            networkMatchTime -= Time.deltaTime;
             
-            currentMatchTime -= Time.deltaTime;
-            
-            if (currentMatchTime <= 0)
+            if (networkMatchTime <= 0)
             {
                 EndMatch("Время вышло!");
+            }
+            else
+            {
+                CheckGameOverConditions();
             }
         }
         
         /// <summary>
-        /// Проверка условий окончания игры на сервере
+        /// Проверяет условия окончания игры
         /// </summary>
         [Server]
         private void CheckGameOverConditions()
         {
             if (isGameOver) return;
             
-            // Проверяем количество живых игроков
+            // Находим всех игроков с типизацией
             NetworkPlayerController[] players = FindObjectsOfType<NetworkPlayerController>();
+            
             int alivePlayers = 0;
             NetworkPlayerController lastAlivePlayer = null;
             
@@ -124,7 +111,6 @@ namespace WorldOfBalance.Systems
                 }
             }
             
-            // Определяем победителя
             if (alivePlayers == 0)
             {
                 EndMatch("Ничья - оба игрока погибли!");
@@ -134,7 +120,7 @@ namespace WorldOfBalance.Systems
                 string winnerName = lastAlivePlayer.IsLocalPlayer ? "Игрок 1" : "Игрок 2";
                 EndMatch($"{winnerName} победил!");
                 
-                // Увеличиваем счет победителю
+                // Обновляем счет
                 if (lastAlivePlayer.IsLocalPlayer)
                 {
                     player1Score++;
@@ -147,261 +133,129 @@ namespace WorldOfBalance.Systems
         }
         
         /// <summary>
-        /// Обработка ввода локального игрока
+        /// Завершает матч
         /// </summary>
-        private void HandleInput()
-        {
-            // Пауза
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                CmdTogglePause();
-            }
-            
-            // Рестарт (только для хоста)
-            if (Input.GetKeyDown(KeyCode.R) && isServer)
-            {
-                RestartGame();
-            }
-        }
-        
-        /// <summary>
-        /// Команда переключения паузы
-        /// </summary>
-        [Command(requiresAuthority = false)]
-        private void CmdTogglePause()
-        {
-            if (!isServer) return;
-            
-            isGamePaused = !isGamePaused;
-            
-            if (isGamePaused)
-            {
-                Time.timeScale = 0f;
-            }
-            else
-            {
-                Time.timeScale = 1f;
-            }
-            
-            RpcUpdatePauseState(isGamePaused);
-        }
-        
-        /// <summary>
-        /// Обновление состояния паузы на клиентах
-        /// </summary>
-        [ClientRpc]
-        private void RpcUpdatePauseState(bool paused)
-        {
-            isLocalGamePaused = paused;
-            
-            if (pauseMenu != null)
-            {
-                pauseMenu.SetActive(paused);
-            }
-        }
-        
-        /// <summary>
-        /// Завершение матча на сервере
-        /// </summary>
+        /// <param name="reason">Причина завершения</param>
         [Server]
         private void EndMatch(string reason)
         {
+            if (isGameOver) return;
+            
             isGameOver = true;
+            networkIsGameOver = true;
             gameOverReason = reason;
             
-            Debug.Log($"Матч завершен: {reason}");
+            Debug.Log($"Game Over: {reason}");
             
-            // Уведомляем клиентов
             RpcEndMatch(reason);
         }
         
         /// <summary>
-        /// Уведомление клиентов о завершении матча
-        /// </summary>
-        [ClientRpc]
-        private void RpcEndMatch(string reason)
-        {
-            isGameOver = true;
-            gameOverReason = reason;
-            
-            if (gameOverMenu != null)
-            {
-                gameOverMenu.SetActive(true);
-            }
-            
-            OnGameOver?.Invoke(reason);
-            
-            Debug.Log($"Игра окончена: {reason}");
-        }
-        
-        /// <summary>
-        /// Перезапуск игры (только для сервера)
+        /// Перезапускает игру
         /// </summary>
         [Server]
         public void RestartGame()
         {
-            Time.timeScale = 1f;
-            
-            // Сбрасываем состояние игры
-            currentMatchTime = matchDuration;
-            isGamePaused = false;
             isGameOver = false;
+            networkIsGameOver = false;
             gameOverReason = "";
-            player1Score = 0;
-            player2Score = 0;
             
-            // Очищаем арену и создаем заново
-            if (spawnManager != null)
+            // Возрождаем всех игроков
+            NetworkPlayerController[] players = FindObjectsOfType<NetworkPlayerController>();
+            foreach (var player in players)
             {
-                spawnManager.ClearArena();
-                spawnManager.CreateArena();
+                if (player != null)
+                {
+                    // Получаем HealthSystem с типизацией
+                    HealthSystem healthSystem = player.GetComponent<HealthSystem>();
+                    if (healthSystem != null)
+                    {
+                        healthSystem.Respawn();
+                    }
+                }
             }
             
-            // Уведомляем клиентов
+            InitializeGame();
             RpcRestartGame();
             
-            Debug.Log("Игра перезапущена!");
+            Debug.Log("Game restarted!");
         }
         
         /// <summary>
-        /// Уведомление клиентов о перезапуске игры
+        /// Переключает паузу
+        /// </summary>
+        [Command]
+        public void CmdTogglePause()
+        {
+            isGamePaused = !isGamePaused;
+            networkIsGamePaused = isGamePaused;
+            
+            RpcUpdatePauseState(isGamePaused);
+            
+            Debug.Log($"Game paused: {isGamePaused}");
+        }
+        
+        /// <summary>
+        /// Обрабатывает смерть игрока
+        /// </summary>
+        /// <param name="player">Умерший игрок</param>
+        [Server]
+        public void OnPlayerDeath(NetworkPlayerController player)
+        {
+            Debug.Log($"Player {player.name} died!");
+            
+            // Проверяем условия окончания игры
+            CheckGameOverConditions();
+        }
+        
+        /// <summary>
+        /// Уведомляет клиентов о завершении матча
+        /// </summary>
+        /// <param name="reason">Причина завершения</param>
+        [ClientRpc]
+        private void RpcEndMatch(string reason)
+        {
+            OnGameOver?.Invoke(reason);
+            Debug.Log($"Game Over on client: {reason}");
+        }
+        
+        /// <summary>
+        /// Уведомляет клиентов о перезапуске игры
         /// </summary>
         [ClientRpc]
         private void RpcRestartGame()
         {
-            Time.timeScale = 1f;
-            
-            if (gameOverMenu != null)
-            {
-                gameOverMenu.SetActive(false);
-            }
-            
-            if (pauseMenu != null)
-            {
-                pauseMenu.SetActive(false);
-            }
-            
-            Debug.Log("Игра перезапущена!");
+            OnGameRestarted?.Invoke();
+            Debug.Log("Game restarted on client!");
         }
         
         /// <summary>
-        /// Обработка смерти игрока
+        /// Уведомляет клиентов об изменении состояния паузы
         /// </summary>
-        [Server]
-        public void OnPlayerDeath(GameObject deadPlayer)
+        /// <param name="paused">Состояние паузы</param>
+        [ClientRpc]
+        private void RpcUpdatePauseState(bool paused)
         {
-            Debug.Log($"Игрок {deadPlayer.name} погиб!");
-            
-            // Респавним игрока через некоторое время
-            StartCoroutine(RespawnPlayerWithDelay(deadPlayer, respawnDelay));
+            OnPauseStateChanged?.Invoke(paused);
+            Debug.Log($"Pause state changed on client: {paused}");
         }
         
         /// <summary>
-        /// Корутина респауна игрока с задержкой
+        /// Получает информацию о матче
         /// </summary>
-        private System.Collections.IEnumerator RespawnPlayerWithDelay(GameObject player, float delay)
+        /// <returns>Кортеж с информацией о матче</returns>
+        public (float time, bool paused, bool gameOver, string reason) GetMatchInfo()
         {
-            yield return new WaitForSeconds(delay);
-            
-            if (spawnManager != null && player != null)
-            {
-                spawnManager.RespawnPlayer(player);
-                OnPlayerRespawned?.Invoke();
-            }
+            return (networkMatchTime, networkIsGamePaused, networkIsGameOver, gameOverReason);
         }
         
         /// <summary>
-        /// Получение оставшегося времени матча
+        /// Получает информацию о счете
         /// </summary>
-        public float GetMatchTime()
-        {
-            return currentMatchTime;
-        }
-        
-        /// <summary>
-        /// Получение форматированного времени
-        /// </summary>
-        public string GetFormattedTime()
-        {
-            int minutes = Mathf.FloorToInt(currentMatchTime / 60f);
-            int seconds = Mathf.FloorToInt(currentMatchTime % 60f);
-            return string.Format("{0:00}:{1:00}", minutes, seconds);
-        }
-        
-        /// <summary>
-        /// Получение счета игроков
-        /// </summary>
-        public (int player1Score, int player2Score) GetScores()
+        /// <returns>Кортеж с счетом (player1, player2)</returns>
+        public (int player1, int player2) GetScore()
         {
             return (player1Score, player2Score);
-        }
-        
-        /// <summary>
-        /// Проверка, пауза ли игра
-        /// </summary>
-        public bool IsGamePaused()
-        {
-            return isGamePaused || isLocalGamePaused;
-        }
-        
-        /// <summary>
-        /// Проверка, окончена ли игра
-        /// </summary>
-        public bool IsGameOver()
-        {
-            return isGameOver;
-        }
-        
-        /// <summary>
-        /// Получение причины окончания игры
-        /// </summary>
-        public string GetGameOverReason()
-        {
-            return gameOverReason;
-        }
-        
-        /// <summary>
-        /// Выход в главное меню
-        /// </summary>
-        public void QuitToMenu()
-        {
-            Time.timeScale = 1f;
-            
-            // Отключаемся от сети
-            if (NetworkClient.active)
-            {
-                NetworkManager.singleton.StopClient();
-            }
-            else if (NetworkServer.active)
-            {
-                NetworkManager.singleton.StopHost();
-            }
-        }
-        
-        /// <summary>
-        /// Выход из игры
-        /// </summary>
-        public void QuitGame()
-        {
-            #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
-            #else
-                Application.Quit();
-            #endif
-        }
-        
-        /// <summary>
-        /// Визуализация в редакторе
-        /// </summary>
-        private void OnGUI()
-        {
-            if (isLocalPlayer)
-            {
-                GUI.Label(new Rect(10, 90, 200, 20), $"Match Time: {GetFormattedTime()}");
-                GUI.Label(new Rect(10, 110, 200, 20), $"Score: {player1Score} - {player2Score}");
-                GUI.Label(new Rect(10, 130, 200, 20), $"Game Over: {isGameOver}");
-                GUI.Label(new Rect(10, 150, 200, 20), $"Paused: {IsGamePaused()}");
-            }
         }
     }
 } 

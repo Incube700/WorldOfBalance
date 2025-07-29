@@ -2,78 +2,85 @@ using UnityEngine;
 
 namespace WorldOfBalance.Effects
 {
-    /// <summary>
-    /// Эффект рикошета снаряда от поверхности
-    /// </summary>
     public class RicochetEffect : MonoBehaviour
     {
-        [Header("Effect Settings")]
-        [SerializeField] private float lifetime = 1f;
-        [SerializeField] private float sparkCount = 8;
-        [SerializeField] private float sparkSpeed = 5f;
-        [SerializeField] private float sparkLifetime = 0.5f;
-        
-        [Header("Visual Components")]
-        [SerializeField] private SpriteRenderer mainSprite;
+        [Header("Spark Settings")]
         [SerializeField] private GameObject sparkPrefab;
-        [SerializeField] private ParticleSystem sparkParticles;
+        [SerializeField] private int sparkCount = 8;
+        [SerializeField] private float sparkSpeed = 5f;
+        [SerializeField] private float sparkLifetime = 1f;
         
+        [Header("Effect Settings")]
+        [SerializeField] private float effectLifetime = 0.3f;
+        [SerializeField] private float maxScale = 1.5f;
+        [SerializeField] private float scaleSpeed = 3f;
+        [SerializeField] private float fadeSpeed = 2f;
+        
+        [Header("Components")]
+        [SerializeField] private SpriteRenderer spriteRenderer;
+        [SerializeField] private ParticleSystem particleSystem;
+        
+        // Local variables
         private float currentLifetime;
         private Vector3 originalScale;
         private Color originalColor;
         
-        private void Start()
+        private void Awake()
         {
-            // Получаем компоненты, если они не назначены
-            if (mainSprite == null)
-                mainSprite = GetComponent<SpriteRenderer>();
-                
-            if (sparkParticles == null)
-                sparkParticles = GetComponent<ParticleSystem>();
+            // Получаем компоненты с типизацией
+            if (spriteRenderer == null)
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            if (particleSystem == null)
+                particleSystem = GetComponent<ParticleSystem>();
             
             // Сохраняем исходные значения
             originalScale = transform.localScale;
-            if (mainSprite != null)
-                originalColor = mainSprite.color;
+            if (spriteRenderer != null)
+            {
+                originalColor = spriteRenderer.color;
+            }
+        }
+        
+        /// <summary>
+        /// Инициализирует эффект рикошета
+        /// </summary>
+        /// <param name="direction">Направление рикошета</param>
+        public void Initialize(Vector2 direction)
+        {
+            currentLifetime = effectLifetime;
             
-            // Запускаем эффект
-            StartEffect();
+            // Поворачиваем эффект в направлении рикошета
+            if (direction != Vector2.zero)
+            {
+                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+            }
+            
+            // Создаем искры
+            CreateSparks();
+            
+            // Запускаем частицы, если есть
+            if (particleSystem != null)
+            {
+                particleSystem.Play();
+            }
+            
+            Debug.Log($"RicochetEffect initialized in direction: {direction}");
         }
         
         private void Update()
         {
-            currentLifetime += Time.deltaTime;
-            
-            // Обновляем эффект
             UpdateEffect();
             
-            // Уничтожаем объект по истечении времени
-            if (currentLifetime >= lifetime)
+            // Уничтожаем эффект по истечении времени жизни
+            if (currentLifetime <= 0)
             {
                 Destroy(gameObject);
             }
         }
         
         /// <summary>
-        /// Запуск эффекта
-        /// </summary>
-        private void StartEffect()
-        {
-            // Запускаем систему частиц
-            if (sparkParticles != null)
-            {
-                sparkParticles.Play();
-            }
-            
-            // Создаем искры
-            CreateSparks();
-            
-            // Устанавливаем начальный размер
-            transform.localScale = Vector3.zero;
-        }
-        
-        /// <summary>
-        /// Создание искр
+        /// Создает искры для эффекта рикошета
         /// </summary>
         private void CreateSparks()
         {
@@ -81,14 +88,14 @@ namespace WorldOfBalance.Effects
             
             for (int i = 0; i < sparkCount; i++)
             {
-                // Случайное направление
+                // Случайное направление для искры
                 float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
                 Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
                 
                 // Создаем искру
                 GameObject spark = Instantiate(sparkPrefab, transform.position, Quaternion.identity);
                 
-                // Добавляем движение
+                // Настраиваем физику искры
                 Rigidbody2D sparkRb = spark.GetComponent<Rigidbody2D>();
                 if (sparkRb != null)
                 {
@@ -101,68 +108,68 @@ namespace WorldOfBalance.Effects
         }
         
         /// <summary>
-        /// Обновление эффекта
+        /// Обновляет визуальный эффект
         /// </summary>
         private void UpdateEffect()
         {
-            float progress = currentLifetime / lifetime;
+            float progress = currentLifetime / effectLifetime;
             
             // Масштабирование
-            float scale = Mathf.Lerp(0f, 1f, progress * 2f);
+            float scale = Mathf.Lerp(0f, maxScale, progress * scaleSpeed);
             transform.localScale = originalScale * scale;
             
-            // Затухание
-            if (mainSprite != null)
+            // Прозрачность для спрайта
+            if (spriteRenderer != null)
             {
-                float alpha = Mathf.Lerp(1f, 0f, progress * 3f);
+                float alpha = Mathf.Lerp(1f, 0f, progress * fadeSpeed);
                 Color newColor = originalColor;
                 newColor.a = alpha;
-                mainSprite.color = newColor;
+                spriteRenderer.color = newColor;
             }
+            
+            currentLifetime -= Time.deltaTime;
         }
         
         /// <summary>
-        /// Установка направления эффекта
+        /// Создает эффект рикошета в указанной позиции
         /// </summary>
-        public void SetDirection(Vector2 direction)
+        /// <param name="position">Позиция эффекта</param>
+        /// <param name="direction">Направление рикошета</param>
+        public static void CreateRicochetEffect(Vector2 position, Vector2 direction)
         {
-            if (direction != Vector2.zero)
-            {
-                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-                transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
-            }
-        }
-        
-        /// <summary>
-        /// Установка цвета эффекта
-        /// </summary>
-        public void SetColor(Color color)
-        {
-            if (mainSprite != null)
-            {
-                originalColor = color;
-                mainSprite.color = color;
-            }
-        }
-        
-        /// <summary>
-        /// Создание эффекта рикошета в указанной позиции
-        /// </summary>
-        public static void CreateRicochetEffect(Vector3 position, Vector2 direction, Color color)
-        {
-            // Создаем эффект
             GameObject effectPrefab = Resources.Load<GameObject>("Effects/RicochetEffect");
             if (effectPrefab != null)
             {
                 GameObject effect = Instantiate(effectPrefab, position, Quaternion.identity);
                 RicochetEffect ricochetEffect = effect.GetComponent<RicochetEffect>();
-                
                 if (ricochetEffect != null)
                 {
-                    ricochetEffect.SetDirection(direction);
-                    ricochetEffect.SetColor(color);
+                    ricochetEffect.Initialize(direction);
                 }
             }
+            else
+            {
+                Debug.LogWarning("RicochetEffect prefab not found in Resources/Effects/");
+            }
+        }
+        
+        /// <summary>
+        /// Получает информацию об эффекте
+        /// </summary>
+        /// <returns>Кортеж с информацией об эффекте</returns>
+        public (float lifetime, float currentLifetime, float progress) GetEffectInfo()
+        {
+            float progress = effectLifetime > 0 ? currentLifetime / effectLifetime : 0f;
+            return (effectLifetime, currentLifetime, progress);
+        }
+        
+        /// <summary>
+        /// Получает информацию о настройках искр
+        /// </summary>
+        /// <returns>Кортеж с информацией об искрах</returns>
+        public (int sparkCount, float sparkSpeed, float sparkLifetime) GetSparkInfo()
+        {
+            return (sparkCount, sparkSpeed, sparkLifetime);
         }
     }
 } 

@@ -5,61 +5,77 @@ using WorldOfBalance.Networking;
 
 namespace WorldOfBalance.UI
 {
-    /// <summary>
-    /// UI меню для подключения к PvP-игре "Мир Баланса"
-    /// </summary>
     public class ConnectionMenu : MonoBehaviour
     {
-        [Header("UI References")]
+        [Header("UI Elements")]
         [SerializeField] private Button hostButton;
         [SerializeField] private Button joinButton;
         [SerializeField] private Button disconnectButton;
-        [SerializeField] private TMP_InputField ipInputField;
+        [SerializeField] private TMP_InputField addressInput;
         [SerializeField] private TextMeshProUGUI statusText;
-        [SerializeField] private GameObject loadingPanel;
+        [SerializeField] private GameObject loadingIndicator;
         
-        [Header("Settings")]
-        [SerializeField] private string defaultIP = "localhost";
-        [SerializeField] private int defaultPort = 7777;
-        
-        private NetworkManagerLobby networkManager;
+        [Header("Components")]
+        [SerializeField] private NetworkManagerLobby networkManager;
         
         private void Start()
         {
-            networkManager = FindObjectOfType<NetworkManagerLobby>();
+            // Получаем NetworkManager с типизацией
+            if (networkManager == null)
+                networkManager = FindObjectOfType<NetworkManagerLobby>();
+            
             if (networkManager == null)
             {
-                Debug.LogError("NetworkManagerLobby не найден на сцене!");
+                Debug.LogError("ConnectionMenu: NetworkManagerLobby not found!");
                 return;
             }
             
-            // Настройка кнопок
-            if (hostButton != null)
-                hostButton.onClick.AddListener(OnHostButtonClicked);
-                
-            if (joinButton != null)
-                joinButton.onClick.AddListener(OnJoinButtonClicked);
-                
-            if (disconnectButton != null)
-                disconnectButton.onClick.AddListener(OnDisconnectButtonClicked);
-            
-            // Настройка поля IP
-            if (ipInputField != null)
-            {
-                ipInputField.text = defaultIP;
-                networkManager.networkAddress = defaultIP;
-            }
-            
-            // Настройка порта
-            networkManager.networkPort = defaultPort;
-            
-            UpdateUI();
+            SetupUI();
+            UpdateUIState();
         }
         
         /// <summary>
-        /// Обработка нажатия кнопки "Создать хост"
+        /// Настраивает UI элементы
         /// </summary>
-        private void OnHostButtonClicked()
+        private void SetupUI()
+        {
+            if (hostButton != null)
+                hostButton.onClick.AddListener(OnHostButtonClicked);
+            
+            if (joinButton != null)
+                joinButton.onClick.AddListener(OnJoinButtonClicked);
+            
+            if (disconnectButton != null)
+                disconnectButton.onClick.AddListener(OnDisconnectButtonClicked);
+            
+            if (addressInput != null)
+                addressInput.text = "localhost";
+        }
+        
+        /// <summary>
+        /// Обновляет состояние UI в зависимости от подключения
+        /// </summary>
+        private void UpdateUIState()
+        {
+            bool isConnected = NetworkClient.active || NetworkServer.active;
+            
+            if (hostButton != null)
+                hostButton.interactable = !isConnected;
+            
+            if (joinButton != null)
+                joinButton.interactable = !isConnected;
+            
+            if (disconnectButton != null)
+                disconnectButton.interactable = isConnected;
+            
+            if (addressInput != null)
+                addressInput.interactable = !isConnected;
+        }
+        
+        /// <summary>
+        /// Обработчик нажатия кнопки "Host"
+        /// </summary>
+        public void OnHostButtonClicked()
         {
             if (networkManager == null) return;
             
@@ -80,25 +96,21 @@ namespace WorldOfBalance.UI
         }
         
         /// <summary>
-        /// Обработка нажатия кнопки "Подключиться"
+        /// Обработчик нажатия кнопки "Join"
         /// </summary>
-        private void OnJoinButtonClicked()
+        public void OnJoinButtonClicked()
         {
             if (networkManager == null) return;
             
-            // Обновляем IP адрес
-            if (ipInputField != null && !string.IsNullOrEmpty(ipInputField.text))
-            {
-                networkManager.networkAddress = ipInputField.text;
-            }
+            string address = addressInput != null ? addressInput.text : "localhost";
             
             SetLoading(true);
-            UpdateStatus("Подключение к серверу...");
+            UpdateStatus($"Подключение к {address}...");
             
             try
             {
-                networkManager.JoinGame();
-                UpdateStatus("Подключение к серверу...");
+                networkManager.JoinGame(address);
+                UpdateStatus("Подключение успешно!");
             }
             catch (System.Exception e)
             {
@@ -109,94 +121,87 @@ namespace WorldOfBalance.UI
         }
         
         /// <summary>
-        /// Обработка нажатия кнопки "Отключиться"
+        /// Обработчик нажатия кнопки "Disconnect"
         /// </summary>
-        private void OnDisconnectButtonClicked()
+        public void OnDisconnectButtonClicked()
         {
             if (networkManager == null) return;
             
             networkManager.Disconnect();
-            UpdateStatus("Отключено от сервера");
+            UpdateStatus("Отключено");
             SetLoading(false);
         }
         
         /// <summary>
-        /// Обновление UI в зависимости от состояния подключения
+        /// Обновляет текст статуса
         /// </summary>
-        private void UpdateUI()
-        {
-            bool isConnected = NetworkClient.active || NetworkServer.active;
-            
-            if (hostButton != null)
-                hostButton.interactable = !isConnected;
-                
-            if (joinButton != null)
-                joinButton.interactable = !isConnected;
-                
-            if (disconnectButton != null)
-                disconnectButton.gameObject.SetActive(isConnected);
-                
-            if (ipInputField != null)
-                ipInputField.interactable = !isConnected;
-        }
-        
-        /// <summary>
-        /// Установка состояния загрузки
-        /// </summary>
-        private void SetLoading(bool isLoading)
-        {
-            if (loadingPanel != null)
-                loadingPanel.SetActive(isLoading);
-        }
-        
-        /// <summary>
-        /// Обновление текста статуса
-        /// </summary>
+        /// <param name="status">Новый статус</param>
         private void UpdateStatus(string status)
         {
             if (statusText != null)
+            {
                 statusText.text = status;
+            }
+            
+            Debug.Log($"ConnectionMenu Status: {status}");
         }
         
         /// <summary>
-        /// Обновление UI при изменении состояния сети
+        /// Устанавливает состояние загрузки
         /// </summary>
-        private void Update()
+        /// <param name="loading">Состояние загрузки</param>
+        private void SetLoading(bool loading)
         {
-            UpdateUI();
+            if (loadingIndicator != null)
+            {
+                loadingIndicator.SetActive(loading);
+            }
             
-            // Обновление статуса в зависимости от состояния сети
-            if (NetworkServer.active && NetworkClient.active)
+            UpdateUIState();
+        }
+        
+        /// <summary>
+        /// Обработчик изменения состояния сети
+        /// </summary>
+        private void OnNetworkStateChanged()
+        {
+            UpdateUIState();
+            
+            if (NetworkClient.active || NetworkServer.active)
             {
-                UpdateStatus("Хост активен");
-                SetLoading(false);
-            }
-            else if (NetworkClient.active)
-            {
-                UpdateStatus("Подключен к серверу");
-                SetLoading(false);
-            }
-            else if (NetworkServer.active)
-            {
-                UpdateStatus("Сервер активен");
+                UpdateStatus("Подключено");
                 SetLoading(false);
             }
             else
             {
-                UpdateStatus("Не подключен");
+                UpdateStatus("Отключено");
                 SetLoading(false);
             }
         }
         
-        /// <summary>
-        /// Обработка изменения IP адреса
-        /// </summary>
-        public void OnIPAddressChanged(string newIP)
+        private void Update()
         {
-            if (networkManager != null && !string.IsNullOrEmpty(newIP))
+            // Проверяем состояние сети
+            if (NetworkClient.active || NetworkServer.active)
             {
-                networkManager.networkAddress = newIP;
+                if (statusText != null && statusText.text != "Подключено")
+                {
+                    OnNetworkStateChanged();
+                }
             }
+        }
+        
+        /// <summary>
+        /// Получает информацию о состоянии подключения
+        /// </summary>
+        /// <returns>Кортеж с информацией о подключении</returns>
+        public (bool isConnected, bool isHost, bool isClient) GetConnectionInfo()
+        {
+            bool isConnected = NetworkClient.active || NetworkServer.active;
+            bool isHost = NetworkServer.active && NetworkClient.active;
+            bool isClient = NetworkClient.active && !NetworkServer.active;
+            
+            return (isConnected, isHost, isClient);
         }
     }
 } 

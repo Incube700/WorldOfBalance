@@ -1,46 +1,39 @@
 using UnityEngine;
 using Mirror;
-using WorldOfBalance.Player;
+using System;
 
 namespace WorldOfBalance.Systems
 {
-    /// <summary>
-    /// Система здоровья для игроков в PvP-игре "Мир Баланса"
-    /// Управляет здоровьем, смертью и возрождением игроков
-    /// </summary>
     public class HealthSystem : NetworkBehaviour
     {
         [Header("Health Settings")]
         [SerializeField] private float maxHealth = 100f;
         [SerializeField] private float currentHealth;
         
-        [Header("UI References")]
-        [SerializeField] private UnityEngine.UI.Slider healthBar;
-        [SerializeField] private UnityEngine.UI.Text healthText;
-        
-        // Сетевые переменные
+        // Network synchronization
         [SyncVar] private float networkHealth;
         
-        // События
-        public System.Action<float> OnHealthChanged;
-        public System.Action OnPlayerDied;
-        public System.Action OnPlayerRespawned;
+        // Events
+        public event Action<float> OnHealthChanged;
+        public event Action OnPlayerDied;
+        public event Action OnPlayerRespawned;
         
-        // Свойства
-        public float MaxHealth => maxHealth;
+        // Properties
         public float CurrentHealth => currentHealth;
-        public float HealthPercentage => currentHealth / maxHealth;
+        public float MaxHealth => maxHealth;
+        public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
         public bool IsDead => currentHealth <= 0f;
-        
-        private NetworkPlayerController playerController;
         
         private void Awake()
         {
-            playerController = GetComponent<NetworkPlayerController>();
-        }
-        
-        private void Start()
-        {
+            // Получаем компоненты с типизацией
+            NetworkPlayerController playerController = GetComponent<NetworkPlayerController>();
+            if (playerController == null)
+            {
+                Debug.LogWarning("HealthSystem: NetworkPlayerController not found!");
+            }
+            
+            // Инициализируем здоровье
             if (isServer)
             {
                 ResetHealth();
@@ -48,19 +41,20 @@ namespace WorldOfBalance.Systems
         }
         
         /// <summary>
-        /// Сброс здоровья к максимальному значению
+        /// Сбрасывает здоровье к максимальному значению
         /// </summary>
         [Server]
         public void ResetHealth()
         {
             currentHealth = maxHealth;
             networkHealth = currentHealth;
-            UpdateHealthUI();
+            RpcUpdateHealth(currentHealth);
         }
         
         /// <summary>
-        /// Получение урона
+        /// Наносит урон игроку
         /// </summary>
+        /// <param name="damage">Количество урона</param>
         [Server]
         public void TakeDamage(float damage)
         {
@@ -69,10 +63,10 @@ namespace WorldOfBalance.Systems
             currentHealth = Mathf.Max(0f, currentHealth - damage);
             networkHealth = currentHealth;
             
-            // Уведомление клиентов об изменении здоровья
             RpcUpdateHealth(currentHealth);
             
-            // Проверка смерти
+            Debug.Log($"Player took {damage} damage. Health: {currentHealth}/{maxHealth}");
+            
             if (IsDead)
             {
                 OnPlayerDied?.Invoke();
@@ -81,22 +75,26 @@ namespace WorldOfBalance.Systems
         }
         
         /// <summary>
-        /// Восстановление здоровья
+        /// Восстанавливает здоровье игрока
         /// </summary>
+        /// <param name="healAmount">Количество восстанавливаемого здоровья</param>
         [Server]
-        public void Heal(float amount)
+        public void Heal(float healAmount)
         {
             if (IsDead) return;
             
-            currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+            currentHealth = Mathf.Min(maxHealth, currentHealth + healAmount);
             networkHealth = currentHealth;
             
             RpcUpdateHealth(currentHealth);
+            
+            Debug.Log($"Player healed {healAmount} health. Health: {currentHealth}/{maxHealth}");
         }
         
         /// <summary>
-        /// Установка здоровья (для отладки)
+        /// Устанавливает здоровье игрока
         /// </summary>
+        /// <param name="health">Новое значение здоровья</param>
         [Server]
         public void SetHealth(float health)
         {
@@ -104,61 +102,86 @@ namespace WorldOfBalance.Systems
             networkHealth = currentHealth;
             
             RpcUpdateHealth(currentHealth);
+            
+            if (IsDead)
+            {
+                OnPlayerDied?.Invoke();
+                RpcPlayerDied();
+            }
         }
         
         /// <summary>
-        /// Обновление здоровья на клиентах
+        /// Устанавливает максимальное здоровье
         /// </summary>
-        [ClientRpc]
-        private void RpcUpdateHealth(float newHealth)
+        /// <param name="newMaxHealth">Новое максимальное здоровье</param>
+        [Server]
+        public void SetMaxHealth(float newMaxHealth)
         {
-            currentHealth = newHealth;
-            UpdateHealthUI();
+            maxHealth = newMaxHealth;
+            currentHealth = Mathf.Min(currentHealth, maxHealth);
+            networkHealth = currentHealth;
+            
+            RpcUpdateHealth(currentHealth);
+        }
+        
+        /// <summary>
+        /// Обновляет здоровье на клиентах
+        /// </summary>
+        /// <param name="health">Текущее здоровье</param>
+        [ClientRpc]
+        private void RpcUpdateHealth(float health)
+        {
+            currentHealth = health;
             OnHealthChanged?.Invoke(currentHealth);
         }
         
         /// <summary>
-        /// Уведомление о смерти игрока
+        /// Уведомляет клиентов о смерти игрока
         /// </summary>
         [ClientRpc]
         private void RpcPlayerDied()
         {
-            Debug.Log($"Игрок {gameObject.name} погиб!");
-            
-            // Отключение компонентов
-            if (playerController != null)
-            {
-                playerController.RpcDie();
-            }
-            
             OnPlayerDied?.Invoke();
+            Debug.Log("Player died on client!");
         }
         
         /// <summary>
-        /// Обновление UI здоровья
+        /// Уведомляет клиентов о возрождении игрока
         /// </summary>
-        private void UpdateHealthUI()
+        [ClientRpc]
+        public void RpcPlayerRespawned()
         {
-            if (healthBar != null)
-            {
-                healthBar.value = HealthPercentage;
-            }
-            
-            if (healthText != null)
-            {
-                healthText.text = $"{Mathf.Ceil(currentHealth)}/{maxHealth}";
-            }
+            OnPlayerRespawned?.Invoke();
+            Debug.Log("Player respawned on client!");
         }
         
         /// <summary>
-        /// Получение информации о здоровье для отладки
+        /// Возрождает игрока
         /// </summary>
-        private void OnGUI()
+        [Server]
+        public void Respawn()
         {
-            if (isLocalPlayer)
-            {
-                GUI.Label(new Rect(10, 10, 200, 20), $"Health: {currentHealth}/{maxHealth}");
-            }
+            ResetHealth();
+            RpcPlayerRespawned();
+        }
+        
+        /// <summary>
+        /// Получает информацию о здоровье
+        /// </summary>
+        /// <returns>Кортеж с информацией о здоровье (current, max, percentage)</returns>
+        public (float current, float max, float percentage) GetHealthInfo()
+        {
+            return (currentHealth, maxHealth, HealthPercentage);
+        }
+        
+        /// <summary>
+        /// Проверяет, находится ли игрок в критическом состоянии
+        /// </summary>
+        /// <param name="threshold">Порог критического здоровья (по умолчанию 25%)</param>
+        /// <returns>true, если здоровье ниже порога</returns>
+        public bool IsCriticalHealth(float threshold = 0.25f)
+        {
+            return HealthPercentage <= threshold;
         }
     }
 } 

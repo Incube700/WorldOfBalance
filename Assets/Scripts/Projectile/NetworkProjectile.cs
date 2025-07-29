@@ -1,14 +1,10 @@
 using UnityEngine;
 using Mirror;
 using WorldOfBalance.Systems;
-using WorldOfBalance.Player;
+using WorldOfBalance.Effects;
 
 namespace WorldOfBalance.Projectile
 {
-    /// <summary>
-    /// Сетевой снаряд для PvP-игры "Мир Баланса"
-    /// Управляет физикой снаряда, пробитием брони и рикошетами
-    /// </summary>
     public class NetworkProjectile : NetworkBehaviour
     {
         [Header("Projectile Settings")]
@@ -16,147 +12,126 @@ namespace WorldOfBalance.Projectile
         [SerializeField] private float damage = 25f;
         [SerializeField] private float penetrationPower = 51f;
         [SerializeField] private float lifetime = 5f;
-        [SerializeField] private float ricochetThreshold = 30f; // Угол для рикошета
+        [SerializeField] private float ricochetThreshold = 70f;
+        [SerializeField] private float bounceForce = 0.8f;
         
-        [Header("Physics")]
-        [SerializeField] private float bounceForce = 0.8f; // Сила отскока при рикошете
-        [SerializeField] private LayerMask collisionLayers = -1;
+        [Header("Components")]
+        [SerializeField] private Rigidbody2D rb;
+        [SerializeField] private CircleCollider2D circleCollider;
+        [SerializeField] private SpriteRenderer spriteRenderer;
         
-        [Header("Visual Effects")]
+        [Header("Effects")]
         [SerializeField] private GameObject hitEffectPrefab;
         [SerializeField] private GameObject ricochetEffectPrefab;
         
-        // Сетевые переменные
+        // Network synchronization
         [SyncVar] private Vector2 networkDirection;
         [SyncVar] private float networkSpeed;
         [SyncVar] private float networkDamage;
         [SyncVar] private float networkPenetrationPower;
         
-        // Локальные переменные
+        // Local variables
         private Vector2 direction;
-        private Rigidbody2D rb;
-        private bool isInitialized = false;
-        private GameObject owner;
         private float currentDamage;
         private float currentPenetrationPower;
+        private float currentSpeed;
+        private float currentLifetime;
         private int bounceCount = 0;
-        private const float ricochetThreshold = 70f; // порог угла рикошета
+        private GameObject owner;
         
-        // Свойства
-        public Vector2 Direction => direction;
-        public float Speed => speed;
-        public float Damage => currentDamage;
-        public float PenetrationPower => currentPenetrationPower;
-        
-        private void Start()
+        private void Awake()
         {
-            rb = GetComponent<Rigidbody2D>();
+            // Получаем компоненты с типизацией
             if (rb == null)
-            {
-                rb = gameObject.AddComponent<Rigidbody2D>();
-            }
+                rb = GetComponent<Rigidbody2D>();
+            if (circleCollider == null)
+                circleCollider = GetComponent<CircleCollider2D>();
+            if (spriteRenderer == null)
+                spriteRenderer = GetComponent<SpriteRenderer>();
             
-            rb.gravityScale = 0f;
-            rb.drag = 0f;
-            
-            if (isServer)
+            // Настраиваем Rigidbody2D для 2D игры
+            if (rb != null)
             {
-                Invoke(nameof(DestroyProjectile), lifetime);
+                rb.gravityScale = 0f;
+                rb.drag = 0f;
+                rb.constraints = RigidbodyConstraints2D.FreezeRotation;
             }
         }
         
-        /// <summary>
-        /// Инициализация снаряда на сервере
-        /// </summary>
         [Server]
-        public void Initialize(Vector2 projectileDirection, float projectileSpeed, float projectileDamage, float projectilePenetration, GameObject projectileOwner)
+        public void Initialize(Vector2 direction, float speed, float damage, float penetrationPower, GameObject owner)
         {
-            direction = projectileDirection.normalized;
-            speed = projectileSpeed;
-            currentDamage = projectileDamage;
-            currentPenetrationPower = projectilePenetration;
-            owner = projectileOwner;
+            this.direction = direction.normalized;
+            this.currentSpeed = speed;
+            this.currentDamage = damage;
+            this.currentPenetrationPower = penetrationPower;
+            this.owner = owner;
+            this.currentLifetime = lifetime;
             
-            // Синхронизация с клиентами
-            networkDirection = direction;
-            networkSpeed = speed;
-            networkDamage = currentDamage;
-            networkPenetrationPower = currentPenetrationPower;
+            // Синхронизируем с сетью
+            networkDirection = this.direction;
+            networkSpeed = this.currentSpeed;
+            networkDamage = this.currentDamage;
+            networkPenetrationPower = this.currentPenetrationPower;
             
-            isInitialized = true;
-            
-            // Установка начальной скорости
+            // Устанавливаем начальную скорость
             if (rb != null)
             {
-                rb.velocity = direction * speed;
+                rb.velocity = this.direction * this.currentSpeed;
             }
             
-            // Уведомление клиентов об инициализации
-            RpcInitialize(direction, speed, currentDamage, currentPenetrationPower);
+            Debug.Log($"Projectile initialized: Direction={direction}, Speed={speed}, Damage={damage}, Penetration={penetrationPower}");
         }
         
-        /// <summary>
-        /// Инициализация снаряда на клиентах
-        /// </summary>
-        [ClientRpc]
-        private void RpcInitialize(Vector2 projectileDirection, float projectileSpeed, float projectileDamage, float projectilePenetration)
-        {
-            direction = projectileDirection;
-            speed = projectileSpeed;
-            currentDamage = projectileDamage;
-            currentPenetrationPower = projectilePenetration;
-            isInitialized = true;
-            
-            if (rb != null)
-            {
-                rb.velocity = direction * speed;
-            }
-        }
-        
-        private void OnCollisionEnter2D(Collision2D collision)
+        private void Update()
         {
             if (!isServer) return;
             
-            HandleCollision(collision);
+            // Обновляем время жизни
+            currentLifetime -= Time.deltaTime;
+            if (currentLifetime <= 0)
+            {
+                DestroyProjectile();
+                return;
+            }
+            
+            // Обновляем направление из сетевых данных
+            if (direction != networkDirection)
+            {
+                direction = networkDirection;
+                if (rb != null)
+                {
+                    rb.velocity = direction * currentSpeed;
+                }
+            }
         }
         
-        /// <summary>
-        /// Обработка столкновения снаряда
-        /// </summary>
-        [Server]
-        private void HandleCollision(Collision2D collision)
+        private void OnTriggerEnter2D(Collider2D other)
         {
-            // Получаем угол столкновения
-            Vector2 normal = collision.contacts[0].normal;
-            float collisionAngle = Vector2.Angle(direction, normal);
+            if (!isServer) return;
             
-            Debug.Log($"Projectile collision with {collision.gameObject.name} at angle: {collisionAngle}°");
+            // Игнорируем столкновения с владельцем
+            if (other.gameObject == owner) return;
             
             // Проверяем, является ли объект игроком
-            NetworkPlayerController player = collision.gameObject.GetComponent<NetworkPlayerController>();
-            if (player != null && player.gameObject != owner)
+            NetworkPlayerController player = other.GetComponent<NetworkPlayerController>();
+            if (player != null)
             {
-                HandlePlayerHit(player, collisionAngle, normal);
-                return;
+                HandlePlayerHit(other);
             }
-            
-            // Проверяем, является ли объект стеной
-            if (collision.gameObject.CompareTag("Wall") || collision.gameObject.layer == LayerMask.NameToLayer("Wall"))
+            else
             {
-                HandleWallHit(collisionAngle, normal);
-                return;
+                // Столкновение со стеной или другим объектом
+                HandleWallHit(other);
             }
-            
-            // Для других объектов - просто уничтожаем снаряд
-            DestroyProjectile();
         }
         
-        /// <summary>
-        /// Обработка попадания в игрока
-        /// </summary>
         [Server]
-        private void HandlePlayerHit(NetworkPlayerController player, float collisionAngle, Vector2 normal)
+        private void HandlePlayerHit(Collider2D collision)
         {
+            Vector2 normal = (transform.position - collision.transform.position).normalized;
+            
+            // Проверяем угол рикошета
             float ricochetAngle = Vector2.Angle(-direction, normal);
             if (ricochetAngle > ricochetThreshold)
             {
@@ -166,47 +141,48 @@ namespace WorldOfBalance.Projectile
                 return;
             }
             
-            // Получаем систему брони игрока
-            ArmorSystem armorSystem = player.GetComponent<ArmorSystem>();
-            if (armorSystem == null)
+            // Получаем компоненты с типизацией
+            ArmorSystem armorSystem = collision.GetComponent<ArmorSystem>();
+            HealthSystem healthSystem = collision.GetComponent<HealthSystem>();
+            
+            if (armorSystem != null && healthSystem != null)
             {
-                // Если нет системы брони, наносим полный урон
-                player.RpcTakeDamage(currentDamage, transform.position, direction);
-                DestroyProjectile();
-                return;
-            }
-            
-            // Вычисляем эффективную броню
-            Vector2 playerForward = player.transform.right; // Направление игрока
-            float effectiveArmor = armorSystem.GetEffectiveArmor(-direction, playerForward);
-            
-            // Проверяем пробитие
-            bool canPenetrate = currentPenetrationPower >= effectiveArmor;
-            
-            Debug.Log($"Hit angle: {collisionAngle}°, Effective armor: {effectiveArmor}, Penetration: {currentPenetrationPower}, Can penetrate: {canPenetrate}");
-            
-            if (canPenetrate)
-            {
-                // Снаряд пробивает броню
-                player.RpcTakeDamage(currentDamage, transform.position, direction);
-                RpcSpawnHitEffect(transform.position, direction);
-                Debug.Log("Projectile penetrated armor!");
+                // Вычисляем эффективную броню
+                Vector2 playerForward = collision.transform.right; // Предполагаем, что игрок смотрит вправо
+                float effectiveArmor = armorSystem.GetEffectiveArmor(-direction, playerForward);
+                
+                // Проверяем пробитие
+                if (currentPenetrationPower >= effectiveArmor)
+                {
+                    // Пробитие - наносим урон
+                    healthSystem.TakeDamage(currentDamage);
+                    Debug.Log($"Projectile penetrated! Damage: {currentDamage}, Effective Armor: {effectiveArmor}");
+                    
+                    RpcSpawnHitEffect(transform.position, direction);
+                }
+                else
+                {
+                    // Не пробивает - рикошет
+                    Ricochet(normal);
+                    RpcSpawnRicochetEffect(transform.position, direction);
+                    Debug.Log($"Projectile ricocheted! Penetration: {currentPenetrationPower}, Effective Armor: {effectiveArmor}");
+                }
             }
             else
             {
-                // Снаряд рикошетит от брони
-                Ricochet(normal);
-                RpcSpawnRicochetEffect(transform.position, direction);
-                Debug.Log("Projectile ricocheted from armor!");
+                Debug.LogError("ArmorSystem or HealthSystem not found on player!");
+                RpcSpawnHitEffect(transform.position, direction);
             }
+            
+            DestroyProjectile();
         }
         
-        /// <summary>
-        /// Обработка попадания в стену
-        /// </summary>
         [Server]
-        private void HandleWallHit(float collisionAngle, Vector2 normal)
+        private void HandleWallHit(Collider2D collision)
         {
+            Vector2 normal = (transform.position - collision.transform.position).normalized;
+            
+            // Проверяем угол рикошета
             float ricochetAngle = Vector2.Angle(-direction, normal);
             if (ricochetAngle > ricochetThreshold)
             {
@@ -221,19 +197,12 @@ namespace WorldOfBalance.Projectile
             }
         }
         
-        /// <summary>
-        /// Рикошет снаряда
-        /// </summary>
         [Server]
         private void Ricochet(Vector2 normal)
         {
-            // Вычисляем направление отскока
             Vector2 reflectedDirection = Vector2.Reflect(direction, normal).normalized;
+            Vector2 newVelocity = reflectedDirection * currentSpeed * bounceForce;
             
-            // Применяем силу отскока
-            Vector2 newVelocity = reflectedDirection * speed * bounceForce;
-            
-            // Обновляем направление и скорость
             direction = reflectedDirection;
             networkDirection = direction;
             
@@ -242,7 +211,7 @@ namespace WorldOfBalance.Projectile
                 rb.velocity = newVelocity;
             }
             
-            // Уменьшаем урон и пробитие после рикошета
+            // Уменьшаем урон и силу пробития после рикошета
             currentDamage *= 0.7f;
             currentPenetrationPower *= 0.8f;
             networkDamage = currentDamage;
@@ -258,56 +227,59 @@ namespace WorldOfBalance.Projectile
             
             Debug.Log($"Projectile ricocheted! New direction: {direction}, New damage: {currentDamage}");
             
-            // Если скорость стала слишком низкой, уничтожаем снаряд
-            if (rb.velocity.magnitude < speed * 0.3f)
+            // Уничтожаем снаряд, если скорость слишком низкая
+            if (rb.velocity.magnitude < currentSpeed * 0.3f)
             {
-                Debug.Log("Projectile lost too much energy, destroying");
                 DestroyProjectile();
             }
         }
         
-        /// <summary>
-        /// Создание эффекта попадания на клиентах
-        /// </summary>
-        [ClientRpc]
-        private void RpcSpawnHitEffect(Vector3 position, Vector2 direction)
-        {
-            if (hitEffectPrefab != null)
-            {
-                GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
-                Destroy(effect, 2f);
-            }
-        }
-        
-        /// <summary>
-        /// Создание эффекта рикошета на клиентах
-        /// </summary>
-        [ClientRpc]
-        private void RpcSpawnRicochetEffect(Vector3 position, Vector2 direction)
-        {
-            if (ricochetEffectPrefab != null)
-            {
-                GameObject effect = Instantiate(ricochetEffectPrefab, position, Quaternion.identity);
-                Destroy(effect, 1f);
-            }
-        }
-        
-        /// <summary>
-        /// Уничтожение снаряда
-        /// </summary>
         [Server]
         private void DestroyProjectile()
         {
             NetworkServer.Destroy(gameObject);
         }
         
-        private void OnDrawGizmos()
+        [ClientRpc]
+        private void RpcSpawnHitEffect(Vector2 position, Vector2 direction)
         {
-            // Визуализация направления снаряда в редакторе
-            if (isInitialized)
+            if (hitEffectPrefab != null)
             {
-                Gizmos.color = Color.red;
-                Gizmos.DrawRay(transform.position, direction * 2f);
+                GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
+                HitEffect hitEffect = effect.GetComponent<HitEffect>();
+                if (hitEffect != null)
+                {
+                    hitEffect.Initialize(direction);
+                }
+            }
+        }
+        
+        [ClientRpc]
+        private void RpcSpawnRicochetEffect(Vector2 position, Vector2 direction)
+        {
+            if (ricochetEffectPrefab != null)
+            {
+                GameObject effect = Instantiate(ricochetEffectPrefab, position, Quaternion.identity);
+                RicochetEffect ricochetEffect = effect.GetComponent<RicochetEffect>();
+                if (ricochetEffect != null)
+                {
+                    ricochetEffect.Initialize(direction);
+                }
+            }
+        }
+        
+        // Статический метод для создания эффекта рикошета
+        public static void CreateRicochetEffect(Vector2 position, Vector2 direction)
+        {
+            GameObject effectPrefab = Resources.Load<GameObject>("Effects/RicochetEffect");
+            if (effectPrefab != null)
+            {
+                GameObject effect = Instantiate(effectPrefab, position, Quaternion.identity);
+                RicochetEffect ricochetEffect = effect.GetComponent<RicochetEffect>();
+                if (ricochetEffect != null)
+                {
+                    ricochetEffect.Initialize(direction);
+                }
             }
         }
     }

@@ -4,10 +4,6 @@ using WorldOfBalance.Systems;
 
 namespace WorldOfBalance.Player
 {
-    /// <summary>
-    /// Сетевой контроллер игрока для PvP-игры "Мир Баланса"
-    /// Управляет движением, стрельбой и синхронизацией по сети
-    /// </summary>
     public class NetworkPlayerController : NetworkBehaviour
     {
         [Header("Movement Settings")]
@@ -28,44 +24,51 @@ namespace WorldOfBalance.Player
         [SerializeField] private ArmorSystem armorSystem;
         [SerializeField] private HealthSystem healthSystem;
         
-        // Сетевые переменные
-        [SyncVar] private Vector2 networkPosition;
-        [SyncVar] private float networkRotation;
-        [SyncVar] private bool isDead = false;
+        // Network synchronization
+        [SyncVar] private Vector3 networkPosition;
+        [SyncVar] private Quaternion networkRotation;
+        [SyncVar] private bool isDead;
         
-        // Локальные переменные
-        private float lastFireTime;
+        // Local variables
         private Vector2 moveInput;
         private Vector2 aimDirection;
-        private Camera playerCamera;
+        private float lastFireTime;
+        private CameraFollow playerCamera;
         
-        // Свойства
-        public bool IsDead => isDead;
-        public bool IsLocalPlayer => isLocalPlayer;
+        private void Awake()
+        {
+            // Получаем компоненты с типизацией
+            if (spriteRenderer == null)
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            if (rb == null)
+                rb = GetComponent<Rigidbody2D>();
+            if (armorSystem == null)
+                armorSystem = GetComponent<ArmorSystem>();
+            if (healthSystem == null)
+                healthSystem = GetComponent<HealthSystem>();
+            
+            // Настраиваем Rigidbody2D для 2D игры
+            if (rb != null)
+            {
+                rb.gravityScale = 0f;
+                rb.drag = 0f;
+                rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+            }
+        }
         
         private void Start()
         {
             if (isLocalPlayer)
             {
-                // Настройка для локального игрока
-                playerCamera = Camera.main;
+                // Находим камеру с типизацией
+                playerCamera = FindObjectOfType<CameraFollow>();
                 if (playerCamera != null)
                 {
-                    playerCamera.GetComponent<CameraFollow>()?.SetTarget(transform);
+                    playerCamera.SetTarget(transform);
                 }
-                
-                // Установка цвета для локального игрока
-                if (spriteRenderer != null)
+                else
                 {
-                    spriteRenderer.color = Color.blue;
-                }
-            }
-            else
-            {
-                // Настройка для удаленного игрока
-                if (spriteRenderer != null)
-                {
-                    spriteRenderer.color = Color.red;
+                    Debug.LogWarning("CameraFollow not found in scene!");
                 }
             }
         }
@@ -74,30 +77,17 @@ namespace WorldOfBalance.Player
         {
             if (!isLocalPlayer || isDead) return;
             
-            // Обработка ввода
             HandleInput();
-            
-            // Стрельба
-            if (Input.GetMouseButton(0) && CanFire())
-            {
-                CmdFire();
-            }
         }
         
         private void FixedUpdate()
         {
-            if (!isLocalPlayer) return;
+            if (!isLocalPlayer || isDead) return;
             
-            // Движение
             Move();
-            
-            // Поворот к мыши
             RotateTowardsMouse();
         }
         
-        /// <summary>
-        /// Обработка ввода игрока
-        /// </summary>
         private void HandleInput()
         {
             // Движение
@@ -106,48 +96,52 @@ namespace WorldOfBalance.Player
             moveInput = moveInput.normalized;
             
             // Прицеливание
-            Vector3 mouseWorldPos = playerCamera.ScreenToWorldPoint(Input.mousePosition);
-            aimDirection = (mouseWorldPos - transform.position).normalized;
+            Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            aimDirection = (mousePosition - transform.position).normalized;
+            
+            // Стрельба
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+            {
+                CmdFire();
+            }
         }
         
-        /// <summary>
-        /// Движение игрока
-        /// </summary>
         private void Move()
         {
             if (rb != null)
             {
-                rb.velocity = moveInput * moveSpeed;
+                Vector2 velocity = moveInput * moveSpeed;
+                rb.velocity = velocity;
+                
+                // Синхронизируем позицию
+                if (isServer)
+                {
+                    networkPosition = transform.position;
+                }
             }
         }
         
-        /// <summary>
-        /// Поворот игрока к мыши
-        /// </summary>
         private void RotateTowardsMouse()
         {
             if (aimDirection != Vector2.zero)
             {
                 float angle = Mathf.Atan2(aimDirection.y, aimDirection.x) * Mathf.Rad2Deg;
-                transform.rotation = Quaternion.RotateTowards(
-                    transform.rotation,
-                    Quaternion.AngleAxis(angle, Vector3.forward),
-                    rotationSpeed * Time.deltaTime
-                );
+                Quaternion targetRotation = Quaternion.AngleAxis(angle, Vector3.forward);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+                
+                // Синхронизируем поворот
+                if (isServer)
+                {
+                    networkRotation = transform.rotation;
+                }
             }
         }
         
-        /// <summary>
-        /// Проверка возможности стрельбы
-        /// </summary>
         private bool CanFire()
         {
             return Time.time - lastFireTime >= fireRate;
         }
         
-        /// <summary>
-        /// Команда стрельбы (вызывается на клиенте, выполняется на сервере)
-        /// </summary>
         [Command]
         private void CmdFire()
         {
@@ -155,112 +149,89 @@ namespace WorldOfBalance.Player
             
             lastFireTime = Time.time;
             
-            // Создание снаряда на сервере
             if (projectilePrefab != null && firePoint != null)
             {
                 GameObject projectile = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
                 NetworkServer.Spawn(projectile);
                 
-                // Настройка снаряда
-                Projectile projectileComponent = projectile.GetComponent<Projectile>();
+                // Получаем компонент с типизацией
+                NetworkProjectile projectileComponent = projectile.GetComponent<NetworkProjectile>();
                 if (projectileComponent != null)
                 {
                     projectileComponent.Initialize(aimDirection, projectileSpeed, projectileDamage, projectilePenetration, gameObject);
                 }
+                else
+                {
+                    Debug.LogError("NetworkProjectile component not found on projectile prefab!");
+                }
             }
         }
         
-        /// <summary>
-        /// Получение урона
-        /// </summary>
         [ClientRpc]
-        public void RpcTakeDamage(float damage, Vector2 hitPoint, Vector2 hitDirection)
+        private void RpcTakeDamage()
         {
-            if (healthSystem != null)
+            if (spriteRenderer != null)
             {
-                healthSystem.TakeDamage(damage);
-                
-                // Визуальный эффект получения урона
                 StartCoroutine(DamageFlash());
             }
         }
         
-        /// <summary>
-        /// Визуальный эффект получения урона
-        /// </summary>
         private System.Collections.IEnumerator DamageFlash()
         {
-            if (spriteRenderer != null)
-            {
-                Color originalColor = spriteRenderer.color;
-                spriteRenderer.color = Color.red;
-                yield return new WaitForSeconds(0.1f);
-                spriteRenderer.color = originalColor;
-            }
+            Color originalColor = spriteRenderer.color;
+            spriteRenderer.color = Color.red;
+            yield return new WaitForSeconds(0.1f);
+            spriteRenderer.color = originalColor;
         }
         
-        /// <summary>
-        /// Смерть игрока
-        /// </summary>
         [ClientRpc]
-        public void RpcDie()
+        private void RpcDie()
         {
             isDead = true;
-            
-            // Отключение компонентов
-            if (rb != null) rb.simulated = false;
-            if (spriteRenderer != null) spriteRenderer.color = Color.gray;
-            
-            Debug.Log($"Игрок {gameObject.name} погиб");
-        }
-        
-        /// <summary>
-        /// Возрождение игрока
-        /// </summary>
-        [ClientRpc]
-        public void RpcRespawn(Vector3 spawnPosition)
-        {
-            isDead = false;
-            transform.position = spawnPosition;
-            
-            // Восстановление компонентов
-            if (rb != null) rb.simulated = true;
-            if (healthSystem != null) healthSystem.ResetHealth();
             if (spriteRenderer != null)
             {
-                spriteRenderer.color = isLocalPlayer ? Color.blue : Color.red;
+                spriteRenderer.color = Color.gray;
             }
+            Debug.Log("Player died!");
         }
         
-        /// <summary>
-        /// Синхронизация позиции и поворота
-        /// </summary>
+        [ClientRpc]
+        private void RpcRespawn()
+        {
+            isDead = false;
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = Color.white;
+            }
+            Debug.Log("Player respawned!");
+        }
+        
+        public bool IsDead => isDead;
+        
+        // Network synchronization
         public override void OnSerialize(NetworkWriter writer)
         {
             base.OnSerialize(writer);
-            writer.WriteVector2(transform.position);
-            writer.WriteFloat(transform.rotation.eulerAngles.z);
+            writer.WriteVector3(transform.position);
+            writer.WriteQuaternion(transform.rotation);
+            writer.WriteBool(isDead);
         }
         
-        /// <summary>
-        /// Десериализация позиции и поворота
-        /// </summary>
         public override void OnDeserialize(NetworkReader reader)
         {
             base.OnDeserialize(reader);
-            networkPosition = reader.ReadVector2();
-            networkRotation = reader.ReadFloat();
+            networkPosition = reader.ReadVector3();
+            networkRotation = reader.ReadQuaternion();
+            isDead = reader.ReadBool();
         }
         
-        /// <summary>
-        /// Обновление позиции удаленного игрока
-        /// </summary>
-        private void UpdateRemotePlayer()
+        private void Update()
         {
             if (!isLocalPlayer)
             {
-                transform.position = Vector2.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, 0, networkRotation), Time.deltaTime * 10f);
+                // Интерполяция для удаленных игроков
+                transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
+                transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
             }
         }
     }

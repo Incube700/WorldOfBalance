@@ -1,277 +1,227 @@
 using UnityEngine;
 using Mirror;
 using WorldOfBalance.Player;
+using WorldOfBalance.Systems;
 
 namespace WorldOfBalance.Map
 {
-/// <summary>
-    /// Менеджер респауна игроков для PvP-игры "Мир Баланса"
-    /// Управляет созданием игроков и их размещением на карте
-/// </summary>
     public class SpawnManager : NetworkBehaviour
-{
-    [Header("Spawn Points")]
+    {
+        [Header("Spawn Points")]
         [SerializeField] private Transform spawnPointA;
         [SerializeField] private Transform spawnPointB;
-        [SerializeField] private Transform[] additionalSpawnPoints; // Для будущего расширения до 4 игроков
-        
-        [Header("Player Settings")]
-        [SerializeField] private GameObject playerPrefab;
-        [SerializeField] private float respawnDelay = 3f;
         
         [Header("Arena Settings")]
-        [SerializeField] private Vector2 arenaSize = new Vector2(20f, 20f);
-        [SerializeField] private Color playerAColor = Color.blue;
-        [SerializeField] private Color playerBColor = Color.red;
+        [SerializeField] private float arenaSize = 20f;
+        [SerializeField] private float wallThickness = 1f;
+        [SerializeField] private Material wallMaterial;
         
-        // Сетевые переменные
-        [SyncVar] private int currentPlayerCount = 0;
+        [Header("Components")]
+        [SerializeField] private NetworkManagerLobby networkManager;
         
-        private NetworkManagerLobby networkManager;
+        private int currentSpawnIndex = 0;
         
-        private void Start()
+        private void Awake()
         {
-            networkManager = FindObjectOfType<NetworkManagerLobby>();
+            // Получаем NetworkManager с типизацией
             if (networkManager == null)
-            {
-                Debug.LogError("NetworkManagerLobby не найден на сцене!");
-            }
+                networkManager = FindObjectOfType<NetworkManagerLobby>();
         }
         
         /// <summary>
-        /// Получение следующей точки респауна
+        /// Получает следующую точку спавна
         /// </summary>
+        /// <returns>Точка спавна</returns>
         [Server]
         public Transform GetNextSpawnPoint()
         {
-            if (currentPlayerCount == 0)
-            {
-                return spawnPointA;
-            }
-            else if (currentPlayerCount == 1)
-            {
-                return spawnPointB;
-            }
-            else
-            {
-                // Для будущего расширения до 4 игроков
-                int spawnIndex = (currentPlayerCount - 2) % additionalSpawnPoints.Length;
-                return additionalSpawnPoints[spawnIndex];
-            }
-    }
-    
-    /// <summary>
-        /// Создание игрока в указанной точке
-    /// </summary>
+            Transform spawnPoint = currentSpawnIndex == 0 ? spawnPointA : spawnPointB;
+            currentSpawnIndex = (currentSpawnIndex + 1) % 2;
+            return spawnPoint;
+        }
+        
+        /// <summary>
+        /// Спавнит игрока в указанной позиции
+        /// </summary>
+        /// <param name="playerPrefab">Префаб игрока</param>
+        /// <param name="spawnPoint">Точка спавна</param>
+        /// <returns>Созданный игрок</returns>
         [Server]
-        public GameObject SpawnPlayer(Transform spawnPoint)
+        public GameObject SpawnPlayer(GameObject playerPrefab, Transform spawnPoint)
         {
-            if (playerPrefab == null)
+            if (playerPrefab == null || spawnPoint == null)
             {
-                Debug.LogError("PlayerPrefab не назначен в SpawnManager!");
+                Debug.LogError("SpawnPlayer: Invalid prefab or spawn point!");
                 return null;
             }
             
-            if (spawnPoint == null)
-            {
-                Debug.LogError("SpawnPoint не назначен!");
-                return null;
-            }
-            
-            // Создаем игрока
             GameObject player = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
-            
-            // Настраиваем цвет игрока
-            SetupPlayerColor(player, currentPlayerCount);
-            
-            // Спавним в сети
             NetworkServer.Spawn(player);
             
-            currentPlayerCount++;
+            SetupPlayerColor(player);
             
-            Debug.Log($"Игрок создан в позиции {spawnPoint.name}. Всего игроков: {currentPlayerCount}");
-            
+            Debug.Log($"Player spawned at {spawnPoint.name}");
             return player;
-    }
-    
-    /// <summary>
-        /// Настройка цвета игрока
-    /// </summary>
+        }
+        
+        /// <summary>
+        /// Настраивает цвет игрока в зависимости от того, локальный он или нет
+        /// </summary>
+        /// <param name="player">Игрок</param>
         [Server]
-        private void SetupPlayerColor(GameObject player, int playerIndex)
+        private void SetupPlayerColor(GameObject player)
         {
-            SpriteRenderer spriteRenderer = player.GetComponent<SpriteRenderer>();
-            if (spriteRenderer != null)
+            NetworkPlayerController playerController = player.GetComponent<NetworkPlayerController>();
+            if (playerController != null)
             {
-                Color playerColor = playerIndex == 0 ? playerAColor : playerBColor;
-                spriteRenderer.color = playerColor;
+                SpriteRenderer spriteRenderer = player.GetComponent<SpriteRenderer>();
+                if (spriteRenderer != null)
+                {
+                    // Устанавливаем цвет в зависимости от того, локальный игрок или нет
+                    Color playerColor = playerController.IsLocalPlayer ? Color.blue : Color.red;
+                    spriteRenderer.color = playerColor;
+                }
             }
         }
         
         /// <summary>
-        /// Респаун игрока после смерти
+        /// Возрождает игрока
         /// </summary>
+        /// <param name="player">Игрок для возрождения</param>
         [Server]
         public void RespawnPlayer(GameObject player)
         {
             if (player == null) return;
             
-            // Получаем следующую точку респауна
             Transform spawnPoint = GetNextSpawnPoint();
-            
-            // Перемещаем игрока
             player.transform.position = spawnPoint.position;
             player.transform.rotation = spawnPoint.rotation;
             
-            // Восстанавливаем здоровье
+            // Получаем компоненты с типизацией
             HealthSystem healthSystem = player.GetComponent<HealthSystem>();
+            NetworkPlayerController playerController = player.GetComponent<NetworkPlayerController>();
+            
             if (healthSystem != null)
             {
-                healthSystem.ResetHealth();
+                healthSystem.Respawn();
             }
             
-            // Восстанавливаем компоненты
-            NetworkPlayerController playerController = player.GetComponent<NetworkPlayerController>();
             if (playerController != null)
             {
-                playerController.RpcRespawn(spawnPoint.position);
+                // Сбрасываем состояние игрока
+                // (это будет обработано в NetworkPlayerController)
             }
             
-            Debug.Log($"Игрок {player.name} респаунен в позиции {spawnPoint.name}");
-    }
-    
-    /// <summary>
-        /// Создание арены с препятствиями
-    /// </summary>
-        [Server]
-        public void CreateArena()
-        {
-            // Создаем границы арены
-            CreateArenaBoundaries();
-            
-            // Создаем препятствия для рикошетов
-            CreateRicochetObstacles();
-            
-            Debug.Log("Арена создана успешно");
+            Debug.Log($"Player {player.name} respawned at {spawnPoint.name}");
         }
         
         /// <summary>
-        /// Создание границ арены
+        /// Создает арену для игры
+        /// </summary>
+        [Server]
+        public void CreateArena()
+        {
+            CreateArenaBoundaries();
+            CreateRicochetObstacles();
+            Debug.Log("Arena created successfully");
+        }
+        
+        /// <summary>
+        /// Создает границы арены
         /// </summary>
         [Server]
         private void CreateArenaBoundaries()
         {
-            // Верхняя стена
-            CreateWall(new Vector3(0, arenaSize.y / 2, 0), new Vector3(arenaSize.x, 1, 1), "Wall");
+            float halfSize = arenaSize / 2f;
             
-            // Нижняя стена
-            CreateWall(new Vector3(0, -arenaSize.y / 2, 0), new Vector3(arenaSize.x, 1, 1), "Wall");
-            
-            // Левая стена
-            CreateWall(new Vector3(-arenaSize.x / 2, 0, 0), new Vector3(1, arenaSize.y, 1), "Wall");
-            
-            // Правая стена
-            CreateWall(new Vector3(arenaSize.x / 2, 0, 0), new Vector3(1, arenaSize.y, 1), "Wall");
+            // Создаем стены по периметру
+            CreateWall(new Vector3(-halfSize, 0, 0), new Vector3(wallThickness, arenaSize, 1f), "Wall_Left");
+            CreateWall(new Vector3(halfSize, 0, 0), new Vector3(wallThickness, arenaSize, 1f), "Wall_Right");
+            CreateWall(new Vector3(0, -halfSize, 0), new Vector3(arenaSize, wallThickness, 1f), "Wall_Bottom");
+            CreateWall(new Vector3(0, halfSize, 0), new Vector3(arenaSize, wallThickness, 1f), "Wall_Top");
         }
         
         /// <summary>
-        /// Создание препятствий для рикошетов
+        /// Создает препятствия для рикошетов
         /// </summary>
         [Server]
         private void CreateRicochetObstacles()
         {
-            // Центральные препятствия
-            CreateWall(new Vector3(0, 0, 0), new Vector3(2, 2, 1), "Wall");
-            CreateWall(new Vector3(3, 3, 0), new Vector3(1, 1, 1), "Wall");
-            CreateWall(new Vector3(-3, -3, 0), new Vector3(1, 1, 1), "Wall");
-            CreateWall(new Vector3(3, -3, 0), new Vector3(1, 1, 1), "Wall");
-            CreateWall(new Vector3(-3, 3, 0), new Vector3(1, 1, 1), "Wall");
+            // Создаем несколько препятствий в центре арены
+            CreateWall(new Vector3(0, 0, 0), new Vector3(3f, 1f, 1f), "Obstacle_Center");
+            CreateWall(new Vector3(-5f, 2f, 0), new Vector3(2f, 2f, 1f), "Obstacle_Left");
+            CreateWall(new Vector3(5f, -2f, 0), new Vector3(2f, 2f, 1f), "Obstacle_Right");
         }
         
         /// <summary>
-        /// Создание стены
+        /// Создает стену
         /// </summary>
+        /// <param name="position">Позиция стены</param>
+        /// <param name="scale">Размер стены</param>
+        /// <param name="name">Имя стены</param>
         [Server]
-        private void CreateWall(Vector3 position, Vector3 scale, string tag)
+        private void CreateWall(Vector3 position, Vector3 scale, string name)
         {
             GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            wall.name = $"Wall_{position.x}_{position.y}";
+            wall.name = name;
             wall.transform.position = position;
             wall.transform.localScale = scale;
-            wall.tag = tag;
             
-            // Настройка материала
+            // Настраиваем компоненты с типизацией
             Renderer renderer = wall.GetComponent<Renderer>();
-            if (renderer != null)
+            Collider collider = wall.GetComponent<Collider>();
+            
+            if (renderer != null && wallMaterial != null)
             {
-                renderer.material.color = Color.gray;
+                renderer.material = wallMaterial;
             }
             
-            // Настройка коллайдера
-            Collider collider = wall.GetComponent<Collider>();
             if (collider != null)
             {
+                // Настраиваем коллайдер для 2D физики
                 collider.isTrigger = false;
             }
             
-            // Спавним в сети
-            NetworkServer.Spawn(wall);
-    }
-    
-    /// <summary>
-        /// Очистка арены
-    /// </summary>
+            // Устанавливаем тег для идентификации
+            wall.tag = "Wall";
+            
+            Debug.Log($"Wall created: {name} at {position}");
+        }
+        
+        /// <summary>
+        /// Очищает арену
+        /// </summary>
         [Server]
         public void ClearArena()
         {
-            // Удаляем все стены
+            // Удаляем все стены и препятствия
             GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
             foreach (GameObject wall in walls)
             {
                 NetworkServer.Destroy(wall);
             }
             
-            Debug.Log("Арена очищена");
-    }
-    
-    /// <summary>
-        /// Получение размера арены
-    /// </summary>
-        public Vector2 GetArenaSize()
+            Debug.Log("Arena cleared");
+        }
+        
+        /// <summary>
+        /// Получает размер арены
+        /// </summary>
+        /// <returns>Размер арены</returns>
+        public float GetArenaSize()
         {
             return arenaSize;
         }
         
         /// <summary>
-        /// Проверка, находится ли позиция в пределах арены
+        /// Проверяет, находится ли позиция в пределах арены
         /// </summary>
+        /// <param name="position">Позиция для проверки</param>
+        /// <returns>true, если позиция в пределах арены</returns>
         public bool IsPositionInArena(Vector3 position)
         {
-            return Mathf.Abs(position.x) <= arenaSize.x / 2 && 
-                   Mathf.Abs(position.y) <= arenaSize.y / 2;
-    }
-    
-    /// <summary>
-        /// Визуализация арены в редакторе
-    /// </summary>
-        private void OnDrawGizmos()
-        {
-            // Границы арены
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireCube(Vector3.zero, new Vector3(arenaSize.x, arenaSize.y, 1));
-            
-            // Точки респауна
-            if (spawnPointA != null)
-            {
-                Gizmos.color = playerAColor;
-                Gizmos.DrawWireSphere(spawnPointA.position, 0.5f);
-            }
-            
-            if (spawnPointB != null)
-            {
-                Gizmos.color = playerBColor;
-                Gizmos.DrawWireSphere(spawnPointB.position, 0.5f);
-            }
+            float halfSize = arenaSize / 2f;
+            return Mathf.Abs(position.x) <= halfSize && Mathf.Abs(position.y) <= halfSize;
         }
     }
 } 

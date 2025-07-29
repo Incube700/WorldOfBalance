@@ -2,75 +2,77 @@ using UnityEngine;
 
 namespace WorldOfBalance.Effects
 {
-    /// <summary>
-    /// Эффект попадания снаряда в цель
-    /// </summary>
     public class HitEffect : MonoBehaviour
     {
         [Header("Effect Settings")]
-        [SerializeField] private float lifetime = 2f;
-        [SerializeField] private float fadeSpeed = 2f;
-        [SerializeField] private float scaleSpeed = 3f;
+        [SerializeField] private float lifetime = 0.5f;
         [SerializeField] private float maxScale = 2f;
+        [SerializeField] private float scaleSpeed = 2f;
+        [SerializeField] private float fadeSpeed = 1f;
         
-        [Header("Visual Components")]
+        [Header("Components")]
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private ParticleSystem particleSystem;
         
+        // Local variables
         private float currentLifetime;
         private Vector3 originalScale;
         private Color originalColor;
         
-        private void Start()
+        private void Awake()
         {
-            // Получаем компоненты, если они не назначены
+            // Получаем компоненты с типизацией
             if (spriteRenderer == null)
                 spriteRenderer = GetComponent<SpriteRenderer>();
-                
             if (particleSystem == null)
                 particleSystem = GetComponent<ParticleSystem>();
             
             // Сохраняем исходные значения
             originalScale = transform.localScale;
             if (spriteRenderer != null)
+            {
                 originalColor = spriteRenderer.color;
-            
-            // Запускаем эффект
-            StartEffect();
+            }
         }
         
-        private void Update()
+        /// <summary>
+        /// Инициализирует эффект попадания
+        /// </summary>
+        /// <param name="direction">Направление попадания</param>
+        public void Initialize(Vector2 direction)
         {
-            currentLifetime += Time.deltaTime;
+            currentLifetime = lifetime;
             
-            // Обновляем эффект
-            UpdateEffect();
-            
-            // Уничтожаем объект по истечении времени
-            if (currentLifetime >= lifetime)
+            // Поворачиваем эффект в направлении попадания
+            if (direction != Vector2.zero)
             {
-                Destroy(gameObject);
+                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
             }
-    }
-    
-    /// <summary>
-        /// Запуск эффекта
-    /// </summary>
-        private void StartEffect()
-        {
-            // Запускаем систему частиц
+            
+            // Запускаем частицы, если есть
             if (particleSystem != null)
             {
                 particleSystem.Play();
             }
             
-            // Устанавливаем начальный размер
-            transform.localScale = Vector3.zero;
-    }
-    
-    /// <summary>
-        /// Обновление эффекта
-    /// </summary>
+            Debug.Log($"HitEffect initialized in direction: {direction}");
+        }
+        
+        private void Update()
+        {
+            UpdateEffect();
+            
+            // Уничтожаем эффект по истечении времени жизни
+            if (currentLifetime <= 0)
+            {
+                Destroy(gameObject);
+            }
+        }
+        
+        /// <summary>
+        /// Обновляет визуальный эффект
+        /// </summary>
         private void UpdateEffect()
         {
             float progress = currentLifetime / lifetime;
@@ -79,7 +81,7 @@ namespace WorldOfBalance.Effects
             float scale = Mathf.Lerp(0f, maxScale, progress * scaleSpeed);
             transform.localScale = originalScale * scale;
             
-            // Затухание
+            // Прозрачность для спрайта
             if (spriteRenderer != null)
             {
                 float alpha = Mathf.Lerp(1f, 0f, progress * fadeSpeed);
@@ -87,30 +89,41 @@ namespace WorldOfBalance.Effects
                 newColor.a = alpha;
                 spriteRenderer.color = newColor;
             }
+            
+            currentLifetime -= Time.deltaTime;
         }
         
         /// <summary>
-        /// Установка направления эффекта
+        /// Создает эффект попадания в указанной позиции
         /// </summary>
-        public void SetDirection(Vector2 direction)
+        /// <param name="position">Позиция эффекта</param>
+        /// <param name="direction">Направление попадания</param>
+        public static void CreateHitEffect(Vector2 position, Vector2 direction)
         {
-            if (direction != Vector2.zero)
+            GameObject effectPrefab = Resources.Load<GameObject>("Effects/HitEffect");
+            if (effectPrefab != null)
             {
-                float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-                transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+                GameObject effect = Instantiate(effectPrefab, position, Quaternion.identity);
+                HitEffect hitEffect = effect.GetComponent<HitEffect>();
+                if (hitEffect != null)
+                {
+                    hitEffect.Initialize(direction);
+                }
             }
-    }
-    
-    /// <summary>
-        /// Установка цвета эффекта
-    /// </summary>
-        public void SetColor(Color color)
+            else
+            {
+                Debug.LogWarning("HitEffect prefab not found in Resources/Effects/");
+            }
+        }
+        
+        /// <summary>
+        /// Получает информацию об эффекте
+        /// </summary>
+        /// <returns>Кортеж с информацией об эффекте</returns>
+        public (float lifetime, float currentLifetime, float progress) GetEffectInfo()
         {
-            if (spriteRenderer != null)
-            {
-                originalColor = color;
-                spriteRenderer.color = color;
-            }
+            float progress = lifetime > 0 ? currentLifetime / lifetime : 0f;
+            return (lifetime, currentLifetime, progress);
         }
     }
 } 

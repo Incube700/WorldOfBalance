@@ -14,10 +14,13 @@ public class TestAISceneBuilder : MonoBehaviour
         // Создаем объекты
         CreateCamera();
         CreateGround();
+        CreateWalls();
         CreatePlayer();
         CreateEnemy();
         CreateProjectile();
         CreateGameManager();
+        CreateUI();
+        CreateEffects();
         
         // Сохраняем сцену
         SaveScene();
@@ -91,6 +94,55 @@ public class TestAISceneBuilder : MonoBehaviour
         Debug.Log("Земля создана");
     }
     
+    static void CreateWalls()
+    {
+        Debug.Log("Создаем стены...");
+        
+        // Левая стена
+        var leftWall = new GameObject("LeftWall");
+        leftWall.transform.position = new Vector3(-10, 0, 0);
+        leftWall.transform.localScale = new Vector3(1, 20, 1);
+        
+        var leftSprite = leftWall.AddComponent<SpriteRenderer>();
+        leftSprite.sprite = CreateSquareSprite();
+        leftSprite.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+        leftSprite.sortingOrder = -1;
+        
+        var leftCollider = leftWall.AddComponent<BoxCollider2D>();
+        var leftRigidbody = leftWall.AddComponent<Rigidbody2D>();
+        leftRigidbody.bodyType = RigidbodyType2D.Static;
+        
+        // Правая стена
+        var rightWall = new GameObject("RightWall");
+        rightWall.transform.position = new Vector3(10, 0, 0);
+        rightWall.transform.localScale = new Vector3(1, 20, 1);
+        
+        var rightSprite = rightWall.AddComponent<SpriteRenderer>();
+        rightSprite.sprite = CreateSquareSprite();
+        rightSprite.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+        rightSprite.sortingOrder = -1;
+        
+        var rightCollider = rightWall.AddComponent<BoxCollider2D>();
+        var rightRigidbody = rightWall.AddComponent<Rigidbody2D>();
+        rightRigidbody.bodyType = RigidbodyType2D.Static;
+        
+        // Верхняя стена
+        var topWall = new GameObject("TopWall");
+        topWall.transform.position = new Vector3(0, 10, 0);
+        topWall.transform.localScale = new Vector3(20, 1, 1);
+        
+        var topSprite = topWall.AddComponent<SpriteRenderer>();
+        topSprite.sprite = CreateSquareSprite();
+        topSprite.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+        topSprite.sortingOrder = -1;
+        
+        var topCollider = topWall.AddComponent<BoxCollider2D>();
+        var topRigidbody = topWall.AddComponent<Rigidbody2D>();
+        topRigidbody.bodyType = RigidbodyType2D.Static;
+        
+        Debug.Log("Стены созданы");
+    }
+    
     static void CreatePlayer()
     {
         Debug.Log("Создаем игрока...");
@@ -111,8 +163,8 @@ public class TestAISceneBuilder : MonoBehaviour
         
         var rigidbody = player.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0.5f;
-        rigidbody.angularDrag = 0.05f;
+        rigidbody.linearDamping = 0.5f;
+        rigidbody.angularDamping = 0.05f;
         rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
         
         // Компоненты
@@ -120,6 +172,17 @@ public class TestAISceneBuilder : MonoBehaviour
         var healthSystem = player.AddComponent<HealthSystem>();
         var armorSystem = player.AddComponent<ArmorSystem>();
         var projectileSpawner = player.AddComponent<ProjectileSpawner>();
+        
+        // Создаем башню игрока
+        var turret = new GameObject("PlayerTurret");
+        turret.transform.SetParent(player.transform);
+        turret.transform.localPosition = Vector3.zero;
+        
+        var turretSprite = turret.AddComponent<SpriteRenderer>();
+        turretSprite.sprite = CreateSquareSprite();
+        turretSprite.color = new Color(0.2f, 0.4f, 0.8f, 1f);
+        turretSprite.sortingOrder = 2;
+        turretSprite.transform.localScale = new Vector3(0.7f, 0.7f, 1f);
         
         Debug.Log("Игрок создан");
     }
@@ -143,8 +206,8 @@ public class TestAISceneBuilder : MonoBehaviour
         
         var rigidbody = enemy.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0.5f;
-        rigidbody.angularDrag = 0.05f;
+        rigidbody.linearDamping = 0.5f;
+        rigidbody.angularDamping = 0.05f;
         rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
         
         // Компоненты
@@ -189,8 +252,8 @@ public class TestAISceneBuilder : MonoBehaviour
         
         var rigidbody = projectile.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0f;
-        rigidbody.angularDrag = 0.05f;
+        rigidbody.linearDamping = 0f;
+        rigidbody.angularDamping = 0.05f;
         rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
         
         // Компонент
@@ -231,6 +294,93 @@ public class TestAISceneBuilder : MonoBehaviour
         }
         
         Debug.Log("GameManager создан");
+    }
+    
+    static void CreateUI()
+    {
+        Debug.Log("Создаем UI...");
+        
+        // Canvas
+        var canvas = new GameObject("Canvas");
+        var canvasComponent = canvas.AddComponent<Canvas>();
+        canvasComponent.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.AddComponent<CanvasScaler>();
+        canvas.AddComponent<GraphicRaycaster>();
+        
+        // Panel для меню
+        var panel = new GameObject("MenuPanel");
+        panel.transform.SetParent(canvas.transform, false);
+        
+        var panelImage = panel.AddComponent<UnityEngine.UI.Image>();
+        panelImage.color = new Color(0, 0, 0, 0.9f);
+        
+        var panelRect = panel.GetComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
+        
+        var mainMenu = panel.AddComponent<MainMenu>();
+        
+        // Кнопки
+        CreateButton(panel, "StartButton", "СТАРТ ИГРЫ", new Vector2(0, 50), () => {
+            mainMenu.StartGame();
+        });
+        
+        CreateButton(panel, "QuitButton", "ВЫХОД", new Vector2(0, -50), () => {
+            mainMenu.QuitGame();
+        });
+        
+        Debug.Log("UI создан");
+    }
+    
+    static void CreateButton(GameObject parent, string name, string text, Vector2 position, System.Action onClick)
+    {
+        var button = new GameObject(name);
+        button.transform.SetParent(parent.transform, false);
+        
+        var buttonImage = button.AddComponent<UnityEngine.UI.Image>();
+        buttonImage.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+        
+        var buttonComponent = button.AddComponent<UnityEngine.UI.Button>();
+        buttonComponent.onClick.AddListener(() => onClick?.Invoke());
+        
+        var buttonRect = button.GetComponent<RectTransform>();
+        buttonRect.anchorMin = new Vector2(0.5f, 0.5f);
+        buttonRect.anchorMax = new Vector2(0.5f, 0.5f);
+        buttonRect.sizeDelta = new Vector2(250, 60);
+        buttonRect.anchoredPosition = position;
+        
+        var textObj = new GameObject("Text");
+        textObj.transform.SetParent(button.transform, false);
+        
+        var buttonText = textObj.AddComponent<UnityEngine.UI.Text>();
+        buttonText.text = text;
+        buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        buttonText.fontSize = 28;
+        buttonText.color = Color.white;
+        buttonText.alignment = TextAnchor.MiddleCenter;
+        
+        var textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+    }
+    
+    static void CreateEffects()
+    {
+        Debug.Log("Создаем эффекты...");
+        
+        // Создаем объект для эффектов
+        var effects = new GameObject("Effects");
+        effects.transform.position = Vector3.zero;
+        
+        // Добавляем компоненты эффектов
+        effects.AddComponent<HitEffect>();
+        effects.AddComponent<RicochetEffect>();
+        
+        Debug.Log("Эффекты созданы");
     }
     
     static void SaveScene()

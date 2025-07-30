@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using UnityEngine.UI;
 
 public class SimpleSceneBuilder : MonoBehaviour
 {
@@ -19,7 +18,6 @@ public class SimpleSceneBuilder : MonoBehaviour
         CreateEnemy();
         CreateProjectile();
         CreateGameManager();
-        CreateUI();
         
         Debug.Log("=== СЦЕНА ГОТОВА! ===");
         Debug.Log("Нажмите Play для тестирования!");
@@ -132,71 +130,6 @@ public class SimpleSceneBuilder : MonoBehaviour
     {
         var gameManager = new GameObject("LocalGameManager");
         gameManager.AddComponent<LocalGameManager>();
-    }
-    
-    static void CreateUI()
-    {
-        var canvas = new GameObject("Canvas");
-        var canvasComponent = canvas.AddComponent<Canvas>();
-        canvasComponent.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.AddComponent<CanvasScaler>();
-        canvas.AddComponent<GraphicRaycaster>();
-        
-        var panel = new GameObject("MenuPanel");
-        panel.transform.SetParent(canvas.transform, false);
-        
-        var panelImage = panel.AddComponent<Image>();
-        panelImage.color = new Color(0, 0, 0, 0.9f);
-        
-        var panelRect = panel.GetComponent<RectTransform>();
-        panelRect.anchorMin = Vector2.zero;
-        panelRect.anchorMax = Vector2.one;
-        panelRect.offsetMin = Vector2.zero;
-        panelRect.offsetMax = Vector2.zero;
-        
-        var mainMenu = panel.AddComponent<MainMenu>();
-        
-        CreateButton(panel, "StartButton", "СТАРТ ИГРЫ", new Vector2(0, 50), () => {
-            mainMenu.StartGame();
-        });
-        
-        CreateButton(panel, "QuitButton", "ВЫХОД", new Vector2(0, -50), () => {
-            mainMenu.QuitGame();
-        });
-    }
-    
-    static void CreateButton(GameObject parent, string name, string text, Vector2 position, System.Action onClick)
-    {
-        var button = new GameObject(name);
-        button.transform.SetParent(parent.transform, false);
-        
-        var buttonImage = button.AddComponent<Image>();
-        buttonImage.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-        
-        var buttonComponent = button.AddComponent<Button>();
-        buttonComponent.onClick.AddListener(() => onClick?.Invoke());
-        
-        var buttonRect = button.GetComponent<RectTransform>();
-        buttonRect.anchorMin = new Vector2(0.5f, 0.5f);
-        buttonRect.anchorMax = new Vector2(0.5f, 0.5f);
-        buttonRect.sizeDelta = new Vector2(250, 60);
-        buttonRect.anchoredPosition = position;
-        
-        var textObj = new GameObject("Text");
-        textObj.transform.SetParent(button.transform, false);
-        
-        var buttonText = textObj.AddComponent<Text>();
-        buttonText.text = text;
-        buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        buttonText.fontSize = 28;
-        buttonText.color = Color.white;
-        buttonText.alignment = TextAnchor.MiddleCenter;
-        
-        var textRect = textObj.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = Vector2.zero;
-        textRect.offsetMax = Vector2.zero;
     }
     
     static Sprite CreateSquareSprite()

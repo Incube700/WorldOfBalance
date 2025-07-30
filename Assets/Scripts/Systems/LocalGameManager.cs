@@ -5,8 +5,6 @@ public class LocalGameManager : MonoBehaviour
 {
     [Header("Game Settings")]
     [SerializeField] private bool isGamePaused = false;
-    [SerializeField] private GameObject pauseMenu;
-    [SerializeField] private GameObject mainMenu;
     
     [Header("Player References")]
     [SerializeField] private TankController player;
@@ -38,12 +36,10 @@ public class LocalGameManager : MonoBehaviour
         // Отключаем игровые компоненты до старта игры
         DisableGameComponents();
         
-        // Показываем главное меню
-        if (mainMenu != null)
-            mainMenu.SetActive(true);
-            
         // Останавливаем время
         Time.timeScale = 0f;
+        
+        Debug.Log("Игра готова! Нажмите R для запуска!");
     }
     
     void Update()
@@ -110,6 +106,12 @@ public class LocalGameManager : MonoBehaviour
         {
             RestartGame();
         }
+        
+        // Start game
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            StartGame();
+        }
     }
     
     void CheckGameState()
@@ -126,11 +128,7 @@ public class LocalGameManager : MonoBehaviour
     {
         isGamePaused = !isGamePaused;
         Time.timeScale = isGamePaused ? 0f : 1f;
-        
-        if (pauseMenu != null)
-        {
-            pauseMenu.SetActive(isGamePaused);
-        }
+        Debug.Log(isGamePaused ? "Игра на паузе" : "Игра возобновлена");
     }
     
     public void RestartGame()
@@ -150,10 +148,6 @@ public class LocalGameManager : MonoBehaviour
     
     public void StartGame()
     {
-        // Скрываем главное меню
-        if (mainMenu != null)
-            mainMenu.SetActive(false);
-            
         // Включаем игровые компоненты
         EnableGameComponents();
         

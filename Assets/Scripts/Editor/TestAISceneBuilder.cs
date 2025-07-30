@@ -121,17 +121,6 @@ public class TestAISceneBuilder : MonoBehaviour
         var armorSystem = player.AddComponent<ArmorSystem>();
         var projectileSpawner = player.AddComponent<ProjectileSpawner>();
         
-        // Настройка компонентов
-        if (healthSystem != null)
-        {
-            healthSystem.MaxHealth = 100f;
-        }
-        
-        if (armorSystem != null)
-        {
-            armorSystem.ArmorValue = 20f;
-        }
-        
         Debug.Log("Игрок создан");
     }
     
@@ -162,17 +151,6 @@ public class TestAISceneBuilder : MonoBehaviour
         var enemyAI = enemy.AddComponent<EnemyAIController>();
         var healthSystem = enemy.AddComponent<HealthSystem>();
         var armorSystem = enemy.AddComponent<ArmorSystem>();
-        
-        // Настройка компонентов
-        if (healthSystem != null)
-        {
-            healthSystem.MaxHealth = 80f;
-        }
-        
-        if (armorSystem != null)
-        {
-            armorSystem.ArmorValue = 10f;
-        }
         
         // Создаем башню врага
         var turret = new GameObject("EnemyTurret");

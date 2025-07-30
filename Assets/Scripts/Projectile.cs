@@ -1,6 +1,7 @@
 using UnityEngine;
+using Mirror;
 
-public class Projectile : MonoBehaviour
+public class Projectile : NetworkBehaviour
 {
     [Header("Projectile Settings")]
     [SerializeField] private float speed = 15f;
@@ -18,6 +19,7 @@ public class Projectile : MonoBehaviour
     private float currentPenetrationPower;
     private GameObject owner;
     private float spawnTime;
+    private Vector2 initialDirection;
     
     void Start()
     {
@@ -31,7 +33,13 @@ public class Projectile : MonoBehaviour
     public void Initialize(Vector2 direction, GameObject projectileOwner)
     {
         owner = projectileOwner;
-        rb.linearVelocity = direction * speed;
+        initialDirection = direction;
+        
+        if (isServer)
+        {
+            // Set velocity on server
+            rb.linearVelocity = direction * speed;
+        }
     }
     
     void Update()
@@ -39,12 +47,17 @@ public class Projectile : MonoBehaviour
         // Destroy if lifetime exceeded
         if (Time.time - spawnTime > lifetime)
         {
-            DestroyProjectile();
+            if (isServer)
+            {
+                NetworkServer.Destroy(gameObject);
+            }
         }
     }
     
     void OnCollisionEnter2D(Collision2D collision)
     {
+        if (!isServer) return;
+        
         // Check if we hit a tank
         TankController tank = collision.gameObject.GetComponent<TankController>();
         if (tank != null && tank.gameObject != owner)
@@ -84,7 +97,7 @@ public class Projectile : MonoBehaviour
             // Destroy projectile if no penetration power left
             if (currentPenetrationPower <= 0)
             {
-                DestroyProjectile();
+                NetworkServer.Destroy(gameObject);
                 return;
             }
         }
@@ -96,7 +109,7 @@ public class Projectile : MonoBehaviour
         }
         else
         {
-            DestroyProjectile();
+            NetworkServer.Destroy(gameObject);
         }
     }
     
@@ -104,7 +117,7 @@ public class Projectile : MonoBehaviour
     {
         if (bounceCount >= maxBounces)
         {
-            DestroyProjectile();
+            NetworkServer.Destroy(gameObject);
             return;
         }
         
@@ -124,7 +137,7 @@ public class Projectile : MonoBehaviour
         // Destroy if no penetration power left
         if (currentPenetrationPower <= 0)
         {
-            DestroyProjectile();
+            NetworkServer.Destroy(gameObject);
         }
     }
     
@@ -142,8 +155,10 @@ public class Projectile : MonoBehaviour
     
     void DestroyProjectile()
     {
-        // Просто отключаем объект, не удаляем
-        gameObject.SetActive(false);
-        Debug.Log($"Projectile отключен: {gameObject.name}");
+        if (isServer)
+        {
+            NetworkServer.Destroy(gameObject);
+        }
+        Debug.Log($"Projectile destroyed: {gameObject.name}");
     }
 }

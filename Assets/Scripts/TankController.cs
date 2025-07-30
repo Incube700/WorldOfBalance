@@ -1,6 +1,10 @@
 using UnityEngine;
+using Mirror;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
-public class TankController : MonoBehaviour
+public class TankController : NetworkBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private float moveForce = 1000f;
@@ -18,8 +22,25 @@ public class TankController : MonoBehaviour
     [SerializeField] private ArmorSystem armorSystem;
     [SerializeField] private ProjectileSpawner projectileSpawner;
     
+    [Header("Input System")]
+    [SerializeField] private InputActionAsset inputActions;
+    
     private float lastFireTime;
     private Camera mainCamera;
+    private InputAction moveAction;
+    private InputAction attackAction;
+    private InputAction lookAction;
+    
+    // Platform detection and input switching
+    private bool useTouchInput;
+    private bool isMobilePlatform;
+    private Vector2 moveInput;
+    private Vector2 lookInput;
+    private bool attackPressed;
+    
+    // Mobile input references
+    private MobileInputController mobileInput;
+    private Joystick mobileJoystick;
     
     void Start()
     {
@@ -35,28 +56,145 @@ public class TankController : MonoBehaviour
             mainCamera.transform.SetParent(transform);
             mainCamera.transform.localPosition = new Vector3(0, 0, -10);
         }
+        
+        // Detect platform
+        isMobilePlatform = Application.isMobilePlatform;
+        Debug.Log($"Platform detected: {Application.platform}, Mobile: {isMobilePlatform}");
+    }
+    
+    public override void OnStartLocalPlayer()
+    {
+        base.OnStartLocalPlayer();
+        
+        // Platform-specific input setup
+        useTouchInput = isMobilePlatform;
+        
+        if (useTouchInput)
+        {
+            SetupMobileInput();
+        }
+        else
+        {
+            SetupDesktopInput();
+        }
+        
+        Debug.Log($"Local player input setup completed. Touch: {useTouchInput}");
+    }
+    
+    void SetupDesktopInput()
+    {
+        // Setup input actions for desktop
+        if (inputActions != null)
+        {
+            var playerActionMap = inputActions.FindActionMap("Player");
+            if (playerActionMap != null)
+            {
+                moveAction = playerActionMap.FindAction("Move");
+                attackAction = playerActionMap.FindAction("Attack");
+                lookAction = playerActionMap.FindAction("Look");
+                
+                if (moveAction != null) moveAction.Enable();
+                if (attackAction != null) attackAction.Enable();
+                if (lookAction != null) lookAction.Enable();
+                
+                // Subscribe to input events
+                if (attackAction != null)
+                {
+                    attackAction.performed += OnAttackPerformed;
+                    attackAction.canceled += OnAttackCanceled;
+                }
+            }
+        }
+    }
+    
+    void SetupMobileInput()
+    {
+        // Find mobile input components
+        mobileInput = FindObjectOfType<MobileInputController>();
+        if (mobileInput != null)
+        {
+            mobileJoystick = mobileInput.GetComponentInChildren<Joystick>();
+        }
+        
+        // Enable mobile UI
+        if (mobileInput != null)
+        {
+            mobileInput.gameObject.SetActive(true);
+        }
     }
     
     void Update()
     {
-        if (IsDead()) return;
+        if (!isLocalPlayer || IsDead()) return;
         
+        HandleInput();
         HandleMovement();
         HandleShooting();
     }
     
+    void HandleInput()
+    {
+        if (useTouchInput)
+        {
+            HandleMobileInput();
+        }
+        else
+        {
+            HandleDesktopInput();
+        }
+    }
+    
+    void HandleDesktopInput()
+    {
+        // Get input from Input System
+        if (moveAction != null)
+        {
+            moveInput = moveAction.ReadValue<Vector2>();
+        }
+        
+        if (lookAction != null)
+        {
+            lookInput = lookAction.ReadValue<Vector2>();
+        }
+        
+        // Fallback to legacy input for testing
+        if (moveInput.magnitude < 0.1f)
+        {
+            moveInput = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+        }
+        
+        // Handle attack input
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+        {
+            attackPressed = true;
+        }
+    }
+    
+    void HandleMobileInput()
+    {
+        // Get input from mobile joystick
+        if (mobileJoystick != null)
+        {
+            moveInput = mobileJoystick.Direction;
+        }
+        
+        // Handle touch input for shooting
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Began)
+            {
+                attackPressed = true;
+            }
+        }
+    }
+    
     void HandleMovement()
     {
-        // Get input
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
-        
-        // Movement
-        Vector2 movement = new Vector2(horizontal, vertical).normalized;
-        if (movement.magnitude > 0.1f)
+        if (moveInput.magnitude > 0.1f)
         {
             // Apply force for movement
-            rb.AddForce(movement * moveForce * Time.deltaTime);
+            rb.AddForce(moveInput.normalized * moveForce * Time.deltaTime);
             
             // Limit speed
             if (rb.linearVelocity.magnitude > maxSpeed)
@@ -65,7 +203,7 @@ public class TankController : MonoBehaviour
             }
             
             // Rotate towards movement direction
-            float angle = Mathf.Atan2(movement.y, movement.x) * Mathf.Rad2Deg;
+            float angle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation, 
                 Quaternion.Euler(0, 0, angle), 
@@ -76,12 +214,28 @@ public class TankController : MonoBehaviour
     
     void HandleShooting()
     {
-        if (Input.GetMouseButtonDown(0) && CanFire())
+        if (attackPressed && CanFire())
         {
             Vector2 fireDirection = GetFireDirection();
-            FireProjectile(fireDirection);
+            CmdFire(fireDirection);
+            lastFireTime = Time.time;
+            attackPressed = false;
+        }
+    }
+    
+    void OnAttackPerformed(InputAction.CallbackContext context)
+    {
+        if (isLocalPlayer && CanFire())
+        {
+            Vector2 fireDirection = GetFireDirection();
+            CmdFire(fireDirection);
             lastFireTime = Time.time;
         }
+    }
+    
+    void OnAttackCanceled(InputAction.CallbackContext context)
+    {
+        // Handle attack release if needed
     }
     
     bool CanFire()
@@ -93,19 +247,43 @@ public class TankController : MonoBehaviour
     {
         if (mainCamera == null) return transform.right;
         
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorldPos.z = 0f;
-        
-        Vector2 direction = (mouseWorldPos - transform.position).normalized;
-        return direction;
+        if (useTouchInput)
+        {
+            // For mobile, fire in movement direction or forward
+            if (moveInput.magnitude > 0.1f)
+            {
+                return moveInput.normalized;
+            }
+            return transform.right;
+        }
+        else
+        {
+            // For desktop, fire towards mouse
+            Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+            mouseWorldPos.z = 0f;
+            
+            Vector2 direction = (mouseWorldPos - transform.position).normalized;
+            return direction;
+        }
     }
     
-    void FireProjectile(Vector2 direction)
+    [Command]
+    void CmdFire(Vector2 direction)
     {
         if (projectileSpawner != null)
         {
             projectileSpawner.SpawnProjectile(direction, gameObject);
         }
+        
+        // Call RPC to show effects on all clients
+        RpcOnFire(direction);
+    }
+    
+    [ClientRpc]
+    void RpcOnFire(Vector2 direction)
+    {
+        // Play fire effects, sounds, etc.
+        Debug.Log($"Fire effect played for {gameObject.name} in direction {direction}");
     }
     
     public void TakeDamage(float damage, Vector2 hitPoint, GameObject attacker)
@@ -119,5 +297,19 @@ public class TankController : MonoBehaviour
     public bool IsDead()
     {
         return healthSystem != null && healthSystem.IsDead();
+    }
+    
+    void OnDestroy()
+    {
+        // Clean up input actions
+        if (moveAction != null) moveAction.Disable();
+        if (attackAction != null) attackAction.Disable();
+        if (lookAction != null) lookAction.Disable();
+        
+        if (attackAction != null)
+        {
+            attackAction.performed -= OnAttackPerformed;
+            attackAction.canceled -= OnAttackCanceled;
+        }
     }
 }

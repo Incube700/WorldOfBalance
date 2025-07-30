@@ -7,139 +7,183 @@ public class SimpleSceneBuilder : MonoBehaviour
     [MenuItem("Tools/Build Simple Local Scene")]
     public static void BuildSimpleLocalScene()
     {
-        Debug.Log("=== НАЧИНАЕМ СБОРКУ СЦЕНЫ ===");
+        Debug.Log("=== СОЗДАЕМ ПРОСТУЮ СЦЕНУ ===");
         
-        // 1. Очищаем от сетевых компонентов
-        CleanNetworkStuff();
+        // Очищаем сцену
+        ClearScene();
         
-        // 2. Создаем GameManager
+        // Создаем объекты
+        CreateCamera();
+        CreateGround();
+        CreatePlayer();
+        CreateEnemy();
+        CreateProjectile();
         CreateGameManager();
+        CreateUI();
         
-        // 3. Создаем простое меню
-        CreateSimpleMenu();
-        
-        // 4. Проверяем объекты
-        CheckObjects();
-        
-        Debug.Log("=== СБОРКА ЗАВЕРШЕНА ===");
-        Debug.Log("Теперь нажмите Play и проверьте игру!");
+        Debug.Log("=== СЦЕНА ГОТОВА! ===");
+        Debug.Log("Нажмите Play для тестирования!");
     }
     
-    static void CleanNetworkStuff()
+    static void ClearScene()
     {
-        Debug.Log("1. Очищаем сетевые компоненты...");
+        Debug.Log("Очищаем сцену...");
         
-        // Удаляем все объекты с NetworkManager
         var allObjects = FindObjectsOfType<GameObject>();
         foreach (var obj in allObjects)
         {
-            if (obj.name.Contains("NetworkManager") || obj.name.Contains("Network"))
+            if (obj.name != "Main Camera")
             {
                 DestroyImmediate(obj);
-                Debug.Log($"Удален: {obj.name}");
             }
+        }
+    }
+    
+    static void CreateCamera()
+    {
+        var camera = Camera.main;
+        if (camera == null)
+        {
+            var cameraObj = new GameObject("Main Camera");
+            camera = cameraObj.AddComponent<Camera>();
+            cameraObj.AddComponent<AudioListener>();
         }
         
-        // Отключаем NetworkIdentity на всех объектах (если есть)
-        var identities = FindObjectsOfType<MonoBehaviour>();
-        foreach (var comp in identities)
-        {
-            if (comp != null && comp.GetType().Name == "NetworkIdentity")
-            {
-                comp.enabled = false;
-                Debug.Log($"NetworkIdentity отключен на {comp.gameObject.name}");
-            }
-        }
+        camera.orthographic = true;
+        camera.orthographicSize = 10f;
+        camera.backgroundColor = new Color(0.2f, 0.3f, 0.5f, 1f);
+        camera.transform.position = new Vector3(0, 0, -10);
+    }
+    
+    static void CreateGround()
+    {
+        var ground = new GameObject("Ground");
+        ground.transform.position = new Vector3(0, -5, 0);
+        ground.transform.localScale = new Vector3(20, 1, 1);
+        
+        var spriteRenderer = ground.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = CreateSquareSprite();
+        spriteRenderer.color = new Color(0.3f, 0.6f, 0.3f, 1f);
+        
+        var collider = ground.AddComponent<BoxCollider2D>();
+        var rigidbody = ground.AddComponent<Rigidbody2D>();
+        rigidbody.bodyType = RigidbodyType2D.Static;
+    }
+    
+    static void CreatePlayer()
+    {
+        var player = new GameObject("Player");
+        player.tag = "Player";
+        player.transform.position = new Vector3(-5, 0, 0);
+        
+        var spriteRenderer = player.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = CreateSquareSprite();
+        spriteRenderer.color = new Color(0, 0.5f, 1f, 1f);
+        
+        var collider = player.AddComponent<BoxCollider2D>();
+        var rigidbody = player.AddComponent<Rigidbody2D>();
+        rigidbody.gravityScale = 0f;
+        rigidbody.drag = 0.5f;
+        
+        player.AddComponent<TankController>();
+        player.AddComponent<HealthSystem>();
+        player.AddComponent<ArmorSystem>();
+        player.AddComponent<ProjectileSpawner>();
+    }
+    
+    static void CreateEnemy()
+    {
+        var enemy = new GameObject("Enemy");
+        enemy.transform.position = new Vector3(5, 0, 0);
+        
+        var spriteRenderer = enemy.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = CreateSquareSprite();
+        spriteRenderer.color = new Color(1f, 0.3f, 0.3f, 1f);
+        
+        var collider = enemy.AddComponent<BoxCollider2D>();
+        var rigidbody = enemy.AddComponent<Rigidbody2D>();
+        rigidbody.gravityScale = 0f;
+        rigidbody.drag = 0.5f;
+        
+        enemy.AddComponent<EnemyAIController>();
+        enemy.AddComponent<HealthSystem>();
+        enemy.AddComponent<ArmorSystem>();
+    }
+    
+    static void CreateProjectile()
+    {
+        var projectile = new GameObject("Projectile");
+        projectile.transform.position = new Vector3(0, 10, 0);
+        
+        var spriteRenderer = projectile.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = CreateCircleSprite();
+        spriteRenderer.color = new Color(1f, 0.5f, 0f, 1f);
+        spriteRenderer.transform.localScale = new Vector3(0.3f, 0.3f, 1f);
+        
+        var collider = projectile.AddComponent<CircleCollider2D>();
+        var rigidbody = projectile.AddComponent<Rigidbody2D>();
+        rigidbody.gravityScale = 0f;
+        
+        projectile.AddComponent<Projectile>();
+        projectile.SetActive(false);
     }
     
     static void CreateGameManager()
     {
-        Debug.Log("2. Создаем LocalGameManager...");
-        
-        // Удаляем старый если есть
-        var oldManager = FindObjectOfType<LocalGameManager>();
-        if (oldManager != null)
-        {
-            DestroyImmediate(oldManager.gameObject);
-        }
-        
-        // Создаем новый
-        var gameManagerObj = new GameObject("LocalGameManager");
-        gameManagerObj.AddComponent<LocalGameManager>();
-        
-        Debug.Log("LocalGameManager создан!");
+        var gameManager = new GameObject("LocalGameManager");
+        gameManager.AddComponent<LocalGameManager>();
     }
     
-    static void CreateSimpleMenu()
+    static void CreateUI()
     {
-        Debug.Log("3. Создаем простое меню...");
+        var canvas = new GameObject("Canvas");
+        var canvasComponent = canvas.AddComponent<Canvas>();
+        canvasComponent.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.AddComponent<CanvasScaler>();
+        canvas.AddComponent<GraphicRaycaster>();
         
-        // Удаляем старый Canvas
-        var oldCanvas = FindObjectOfType<Canvas>();
-        if (oldCanvas != null)
-        {
-            DestroyImmediate(oldCanvas.gameObject);
-        }
+        var panel = new GameObject("MenuPanel");
+        panel.transform.SetParent(canvas.transform, false);
         
-        // Создаем Canvas
-        var canvasObj = new GameObject("Canvas");
-        var canvas = canvasObj.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvasObj.AddComponent<CanvasScaler>();
-        canvasObj.AddComponent<GraphicRaycaster>();
-        
-        // Создаем Panel
-        var panelObj = new GameObject("MenuPanel");
-        panelObj.transform.SetParent(canvasObj.transform, false);
-        
-        var panelImage = panelObj.AddComponent<Image>();
+        var panelImage = panel.AddComponent<Image>();
         panelImage.color = new Color(0, 0, 0, 0.9f);
         
-        var panelRect = panelObj.GetComponent<RectTransform>();
+        var panelRect = panel.GetComponent<RectTransform>();
         panelRect.anchorMin = Vector2.zero;
         panelRect.anchorMax = Vector2.one;
         panelRect.offsetMin = Vector2.zero;
         panelRect.offsetMax = Vector2.zero;
         
-        // Добавляем MainMenu скрипт
-        var mainMenu = panelObj.AddComponent<MainMenu>();
+        var mainMenu = panel.AddComponent<MainMenu>();
         
-        // Создаем кнопки
-        CreateSimpleButton(panelObj, "StartButton", "СТАРТ ИГРЫ", new Vector2(0, 50), () => {
-            Debug.Log("Кнопка СТАРТ нажата!");
+        CreateButton(panel, "StartButton", "СТАРТ ИГРЫ", new Vector2(0, 50), () => {
             mainMenu.StartGame();
         });
         
-        CreateSimpleButton(panelObj, "QuitButton", "ВЫХОД", new Vector2(0, -50), () => {
-            Debug.Log("Кнопка ВЫХОД нажата!");
+        CreateButton(panel, "QuitButton", "ВЫХОД", new Vector2(0, -50), () => {
             mainMenu.QuitGame();
         });
-        
-        Debug.Log("Меню создано!");
     }
     
-    static void CreateSimpleButton(GameObject parent, string name, string text, Vector2 position, System.Action onClick)
+    static void CreateButton(GameObject parent, string name, string text, Vector2 position, System.Action onClick)
     {
-        var buttonObj = new GameObject(name);
-        buttonObj.transform.SetParent(parent.transform, false);
+        var button = new GameObject(name);
+        button.transform.SetParent(parent.transform, false);
         
-        // Кнопка
-        var buttonImage = buttonObj.AddComponent<Image>();
+        var buttonImage = button.AddComponent<Image>();
         buttonImage.color = new Color(0.3f, 0.3f, 0.3f, 1f);
         
-        var button = buttonObj.AddComponent<Button>();
-        button.onClick.AddListener(() => onClick?.Invoke());
+        var buttonComponent = button.AddComponent<Button>();
+        buttonComponent.onClick.AddListener(() => onClick?.Invoke());
         
-        // Размер и позиция
-        var buttonRect = buttonObj.GetComponent<RectTransform>();
+        var buttonRect = button.GetComponent<RectTransform>();
         buttonRect.anchorMin = new Vector2(0.5f, 0.5f);
         buttonRect.anchorMax = new Vector2(0.5f, 0.5f);
         buttonRect.sizeDelta = new Vector2(250, 60);
         buttonRect.anchoredPosition = position;
         
-        // Текст
         var textObj = new GameObject("Text");
-        textObj.transform.SetParent(buttonObj.transform, false);
+        textObj.transform.SetParent(button.transform, false);
         
         var buttonText = textObj.AddComponent<Text>();
         buttonText.text = text;
@@ -153,68 +197,39 @@ public class SimpleSceneBuilder : MonoBehaviour
         textRect.anchorMax = Vector2.one;
         textRect.offsetMin = Vector2.zero;
         textRect.offsetMax = Vector2.zero;
-        
-        Debug.Log($"Кнопка {name} создана");
     }
     
-    static void CheckObjects()
+    static Sprite CreateSquareSprite()
     {
-        Debug.Log("4. Проверяем объекты...");
+        var texture = new Texture2D(1, 1);
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f));
+    }
+    
+    static Sprite CreateCircleSprite()
+    {
+        var texture = new Texture2D(32, 32);
+        var center = new Vector2(16, 16);
+        var radius = 16f;
         
-        // Проверяем Player
-        var player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        for (int x = 0; x < 32; x++)
         {
-            Debug.Log($"✅ Player найден: {player.name}");
-            
-            // Проверяем компоненты
-            if (player.GetComponent<TankController>() != null)
-                Debug.Log("✅ TankController есть");
-            else
-                Debug.LogWarning("❌ TankController отсутствует");
-                
-            if (player.GetComponent<HealthSystem>() != null)
-                Debug.Log("✅ HealthSystem есть");
-            else
-                Debug.LogWarning("❌ HealthSystem отсутствует");
-        }
-        else
-        {
-            Debug.LogError("❌ Player НЕ НАЙДЕН!");
-        }
-        
-        // Проверяем Enemy
-        var enemy = GameObject.Find("Enemy");
-        if (enemy != null)
-        {
-            Debug.Log($"✅ Enemy найден: {enemy.name}");
-            
-            if (enemy.GetComponent<EnemyAIController>() != null)
-                Debug.Log("✅ EnemyAIController есть");
-            else
-                Debug.LogWarning("❌ EnemyAIController отсутствует");
-        }
-        else
-        {
-            Debug.LogError("❌ Enemy НЕ НАЙДЕН!");
+            for (int y = 0; y < 32; y++)
+            {
+                var distance = Vector2.Distance(new Vector2(x, y), center);
+                if (distance <= radius)
+                {
+                    texture.SetPixel(x, y, Color.white);
+                }
+                else
+                {
+                    texture.SetPixel(x, y, Color.clear);
+                }
+            }
         }
         
-        // Проверяем Projectile
-        var projectile = GameObject.Find("Projectile");
-        if (projectile != null)
-        {
-            Debug.Log($"✅ Projectile найден: {projectile.name}");
-            
-            if (projectile.GetComponent<Projectile>() != null)
-                Debug.Log("✅ Projectile компонент есть");
-            else
-                Debug.LogWarning("❌ Projectile компонент отсутствует");
-        }
-        else
-        {
-            Debug.LogError("❌ Projectile НЕ НАЙДЕН!");
-        }
-        
-        Debug.Log("Проверка завершена!");
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0, 0, 32, 32), new Vector2(0.5f, 0.5f));
     }
 } 

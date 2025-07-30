@@ -1,15 +1,11 @@
 using UnityEngine;
-using Mirror;
 
-public class ProjectileSpawner : NetworkBehaviour
+public class ProjectileSpawner : MonoBehaviour
 {
     [Header("Spawn Settings")]
     [SerializeField] private GameObject projectilePrefab;
     [SerializeField] private Transform firePoint;
     [SerializeField] private float spawnOffset = 1f;
-    
-    [Header("Network Settings")]
-    [SerializeField] private bool useNetworkSpawning = true;
     
     void Start()
     {
@@ -25,8 +21,6 @@ public class ProjectileSpawner : NetworkBehaviour
     
     public void SpawnProjectile(Vector2 direction, GameObject owner)
     {
-        if (!isServer) return;
-        
         // Calculate spawn position
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
         spawnPosition += (Vector3)(direction * 0.5f); // Small offset from tank
@@ -41,19 +35,7 @@ public class ProjectileSpawner : NetworkBehaviour
             projectile.Initialize(direction, owner);
         }
         
-        // Spawn on network
-        if (useNetworkSpawning)
-        {
-            NetworkServer.Spawn(projectileObj);
-        }
-        
         Debug.Log($"Projectile spawned by {owner.name} in direction {direction}");
-    }
-    
-    [Command]
-    public void CmdSpawnProjectile(Vector2 direction, GameObject owner)
-    {
-        SpawnProjectile(direction, owner);
     }
     
     // Helper method to get fire direction from mouse position
@@ -81,8 +63,6 @@ public class ProjectileSpawner : NetworkBehaviour
     // Method to spawn projectile with custom settings
     public void SpawnProjectileWithSettings(Vector2 direction, GameObject owner, float customSpeed = -1f, float customDamage = -1f)
     {
-        if (!isServer) return;
-        
         // Calculate spawn position
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
         spawnPosition += (Vector3)(direction * 0.5f);
@@ -105,12 +85,6 @@ public class ProjectileSpawner : NetworkBehaviour
                     rb.linearVelocity = direction * customSpeed;
                 }
             }
-        }
-        
-        // Spawn on network
-        if (useNetworkSpawning)
-        {
-            NetworkServer.Spawn(projectileObj);
         }
     }
 }

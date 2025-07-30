@@ -152,13 +152,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1800189005523344757}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   sceneId: 0
-  _assetId: 0
+  _assetId: 1862707721
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
@@ -322,9 +322,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e35c9b8ac1ac74768a17d7bab9c4d72c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
   maxHealth: 100
   deathEffect: {fileID: 0}
   deathColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
@@ -358,10 +355,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bddf0ba607cec496f8e25efb81b595f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
   projectilePrefab: {fileID: 0}
   firePoint: {fileID: 5240350302184285853}
   spawnOffset: 1
-  useNetworkSpawning: 1

@@ -16,11 +16,13 @@ public class EnemyAIController : MonoBehaviour
     private Rigidbody2D rb;
     private Transform firePoint;
     private EnemyTurretController turret;
+    private HealthSystem healthSystem;
     
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         turret = GetComponentInChildren<EnemyTurretController>();
+        healthSystem = GetComponent<HealthSystem>();
         
         GameObject firePointObj = new GameObject("FirePoint");
         firePointObj.transform.SetParent(transform);
@@ -39,7 +41,7 @@ public class EnemyAIController : MonoBehaviour
     
     private void Update()
     {
-        if (target == null) return;
+        if (target == null || IsDead()) return;
         
         HandleMovement();
         HandleShooting();
@@ -84,7 +86,7 @@ public class EnemyAIController : MonoBehaviour
     
     private bool CanFire()
     {
-        return true; // Упрощенная проверка
+        return !IsDead();
     }
     
     private void FireProjectile()
@@ -111,11 +113,15 @@ public class EnemyAIController : MonoBehaviour
     
     public void TakeDamage(float damage, Vector2 hitPoint, GameObject attacker)
     {
+        if (healthSystem != null)
+        {
+            healthSystem.TakeDamage(damage, hitPoint, attacker);
+        }
         Debug.Log($"{gameObject.name} took {damage} damage from {attacker.name}");
     }
     
     public bool IsDead()
     {
-        return false; // Пока нет системы здоровья
+        return healthSystem != null && healthSystem.IsDead();
     }
 }

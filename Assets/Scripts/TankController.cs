@@ -1,7 +1,6 @@
 using UnityEngine;
-using Mirror;
 
-public class TankController : NetworkBehaviour
+public class TankController : MonoBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private float moveForce = 1000f;
@@ -22,8 +21,14 @@ public class TankController : NetworkBehaviour
     private float lastFireTime;
     private Camera mainCamera;
     
-    public override void OnStartLocalPlayer()
+    void Start()
     {
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
+        if (healthSystem == null) healthSystem = GetComponent<HealthSystem>();
+        if (armorSystem == null) armorSystem = GetComponent<ArmorSystem>();
+        if (projectileSpawner == null) projectileSpawner = GetComponent<ProjectileSpawner>();
+        
+        // Setup camera
         mainCamera = Camera.main;
         if (mainCamera != null)
         {
@@ -32,17 +37,9 @@ public class TankController : NetworkBehaviour
         }
     }
     
-    void Start()
-    {
-        if (rb == null) rb = GetComponent<Rigidbody2D>();
-        if (healthSystem == null) healthSystem = GetComponent<HealthSystem>();
-        if (armorSystem == null) armorSystem = GetComponent<ArmorSystem>();
-        if (projectileSpawner == null) projectileSpawner = GetComponent<ProjectileSpawner>();
-    }
-    
     void Update()
     {
-        if (!isLocalPlayer) return;
+        if (IsDead()) return;
         
         HandleMovement();
         HandleShooting();
@@ -82,14 +79,14 @@ public class TankController : NetworkBehaviour
         if (Input.GetMouseButtonDown(0) && CanFire())
         {
             Vector2 fireDirection = GetFireDirection();
-            CmdFire(fireDirection);
+            FireProjectile(fireDirection);
             lastFireTime = Time.time;
         }
     }
     
     bool CanFire()
     {
-        return Time.time - lastFireTime >= fireRate;
+        return Time.time - lastFireTime >= fireRate && !IsDead();
     }
     
     Vector2 GetFireDirection()
@@ -103,8 +100,7 @@ public class TankController : NetworkBehaviour
         return direction;
     }
     
-    [Command]
-    void CmdFire(Vector2 direction)
+    void FireProjectile(Vector2 direction)
     {
         if (projectileSpawner != null)
         {

@@ -1,7 +1,6 @@
 using UnityEngine;
-using Mirror;
 
-public class Projectile : NetworkBehaviour
+public class Projectile : MonoBehaviour
 {
     [Header("Projectile Settings")]
     [SerializeField] private float speed = 15f;
@@ -143,13 +142,8 @@ public class Projectile : NetworkBehaviour
     
     void DestroyProjectile()
     {
-        if (isServer)
-        {
-            NetworkServer.Destroy(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        // Просто отключаем объект, не удаляем
+        gameObject.SetActive(false);
+        Debug.Log($"Projectile отключен: {gameObject.name}");
     }
 }

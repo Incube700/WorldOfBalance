@@ -1,11 +1,10 @@
 using UnityEngine;
-using Mirror;
 
-public class HealthSystem : NetworkBehaviour
+public class HealthSystem : MonoBehaviour
 {
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 100f;
-    [SyncVar] private float currentHealth;
+    private float currentHealth;
     
     [Header("Death Settings")]
     [SerializeField] private GameObject deathEffect;
@@ -23,15 +22,12 @@ public class HealthSystem : NetworkBehaviour
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
         if (tankController == null) tankController = GetComponent<TankController>();
         
-        if (isServer)
-        {
-            currentHealth = maxHealth;
-        }
+        currentHealth = maxHealth;
     }
     
     public void TakeDamage(float damage, Vector2 hitPoint, GameObject attacker)
     {
-        if (!isServer || IsDead()) return;
+        if (IsDead()) return;
         
         currentHealth -= damage;
         currentHealth = Mathf.Max(0, currentHealth);
@@ -78,21 +74,13 @@ public class HealthSystem : NetworkBehaviour
             Instantiate(deathEffect, transform.position, Quaternion.identity);
         }
         
-        // Destroy after delay
-        Invoke(nameof(DestroyTank), 3f);
-    }
-    
-    void DestroyTank()
-    {
-        if (isServer)
-        {
-            NetworkServer.Destroy(gameObject);
-        }
+        // НЕ удаляем объект, просто отключаем
+        Debug.Log($"{gameObject.name} отключен (не удален)");
     }
     
     public void Heal(float amount)
     {
-        if (!isServer || IsDead()) return;
+        if (IsDead()) return;
         
         currentHealth += amount;
         currentHealth = Mathf.Min(maxHealth, currentHealth);
@@ -100,8 +88,6 @@ public class HealthSystem : NetworkBehaviour
     
     public void Respawn()
     {
-        if (!isServer) return;
-        
         currentHealth = maxHealth;
         
         // Reset visual

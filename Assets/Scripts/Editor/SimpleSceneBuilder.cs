@@ -40,7 +40,7 @@ public class SimpleSceneBuilder : MonoBehaviour
             }
         }
         
-        // Отключаем NetworkIdentity на всех объектах
+        // Отключаем NetworkIdentity на всех объектах (если есть)
         var identities = FindObjectsOfType<MonoBehaviour>();
         foreach (var comp in identities)
         {

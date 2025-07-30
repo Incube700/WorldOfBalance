@@ -143,7 +143,7 @@ public class SimpleSceneBuilder : MonoBehaviour
         
         var buttonText = textObj.AddComponent<Text>();
         buttonText.text = text;
-        buttonText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         buttonText.fontSize = 28;
         buttonText.color = Color.white;
         buttonText.alignment = TextAnchor.MiddleCenter;

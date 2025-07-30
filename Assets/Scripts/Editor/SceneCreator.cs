@@ -98,8 +98,8 @@ public class SceneCreator : MonoBehaviour
         var collider = player.AddComponent<BoxCollider2D>();
         var rigidbody = player.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0.5f;
-        rigidbody.angularDrag = 0.05f;
+        rigidbody.linearDamping = 0.5f;
+        rigidbody.angularDamping = 0.05f;
         
         // Компоненты
         player.AddComponent<TankController>();
@@ -126,8 +126,8 @@ public class SceneCreator : MonoBehaviour
         var collider = enemy.AddComponent<BoxCollider2D>();
         var rigidbody = enemy.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0.5f;
-        rigidbody.angularDrag = 0.05f;
+        rigidbody.linearDamping = 0.5f;
+        rigidbody.angularDamping = 0.05f;
         
         // Компоненты
         enemy.AddComponent<EnemyAIController>();
@@ -166,8 +166,8 @@ public class SceneCreator : MonoBehaviour
         var collider = projectile.AddComponent<CircleCollider2D>();
         var rigidbody = projectile.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0f;
-        rigidbody.angularDrag = 0.05f;
+        rigidbody.linearDamping = 0f;
+        rigidbody.angularDamping = 0.05f;
         
         // Компонент
         projectile.AddComponent<Projectile>();
@@ -252,7 +252,7 @@ public class SceneCreator : MonoBehaviour
         
         var buttonText = textObj.AddComponent<Text>();
         buttonText.text = text;
-        buttonText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         buttonText.fontSize = 28;
         buttonText.color = Color.white;
         buttonText.alignment = TextAnchor.MiddleCenter;

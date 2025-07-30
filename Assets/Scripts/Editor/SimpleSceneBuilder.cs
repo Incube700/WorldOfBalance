@@ -81,7 +81,7 @@ public class SimpleSceneBuilder : MonoBehaviour
         var collider = player.AddComponent<BoxCollider2D>();
         var rigidbody = player.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0.5f;
+        rigidbody.linearDamping = 0.5f;
         
         player.AddComponent<TankController>();
         player.AddComponent<HealthSystem>();
@@ -101,7 +101,7 @@ public class SimpleSceneBuilder : MonoBehaviour
         var collider = enemy.AddComponent<BoxCollider2D>();
         var rigidbody = enemy.AddComponent<Rigidbody2D>();
         rigidbody.gravityScale = 0f;
-        rigidbody.drag = 0.5f;
+        rigidbody.linearDamping = 0.5f;
         
         enemy.AddComponent<EnemyAIController>();
         enemy.AddComponent<HealthSystem>();

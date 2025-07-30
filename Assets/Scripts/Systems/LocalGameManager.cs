@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class GameManager : MonoBehaviour
+public class LocalGameManager : MonoBehaviour
 {
     [Header("Game Settings")]
     [SerializeField] private bool isGamePaused = false;
@@ -12,7 +12,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TankController player;
     [SerializeField] private HealthSystem playerHealth;
     
-    public static GameManager Instance { get; private set; }
+    public static LocalGameManager Instance { get; private set; }
     
     void Awake()
     {
@@ -37,6 +37,13 @@ public class GameManager : MonoBehaviour
             
         // Отключаем игровые компоненты до старта игры
         DisableGameComponents();
+        
+        // Показываем главное меню
+        if (mainMenu != null)
+            mainMenu.SetActive(true);
+            
+        // Останавливаем время
+        Time.timeScale = 0f;
     }
     
     void Update()
@@ -139,5 +146,20 @@ public class GameManager : MonoBehaviour
         #else
             Application.Quit();
         #endif
+    }
+    
+    public void StartGame()
+    {
+        // Скрываем главное меню
+        if (mainMenu != null)
+            mainMenu.SetActive(false);
+            
+        // Включаем игровые компоненты
+        EnableGameComponents();
+        
+        // Запускаем время
+        Time.timeScale = 1f;
+        
+        Debug.Log("Игра запущена!");
     }
 } 

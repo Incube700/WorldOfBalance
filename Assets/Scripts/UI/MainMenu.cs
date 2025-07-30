@@ -7,14 +7,14 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject gameUI;
     
-    [Header("Game Starter")]
-    [SerializeField] private GameStarter gameStarter;
+    [Header("Game Manager")]
+    [SerializeField] private LocalGameManager gameManager;
     
     void Start()
     {
-        // Находим GameStarter если не назначен
-        if (gameStarter == null)
-            gameStarter = FindObjectOfType<GameStarter>();
+        // Находим LocalGameManager если не назначен
+        if (gameManager == null)
+            gameManager = FindObjectOfType<LocalGameManager>();
             
         // Показываем главное меню при старте
         if (mainMenuPanel != null)
@@ -37,10 +37,10 @@ public class MainMenu : MonoBehaviour
         if (gameUI != null)
             gameUI.SetActive(true);
             
-        // Запускаем игру через GameStarter
-        if (gameStarter != null)
+        // Запускаем игру через LocalGameManager
+        if (gameManager != null)
         {
-            gameStarter.StartGame();
+            gameManager.StartGame();
         }
         else
         {

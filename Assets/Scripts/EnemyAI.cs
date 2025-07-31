@@ -3,7 +3,8 @@ using UnityEngine;
 public class EnemyAI : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 4f;
+    [SerializeField] private float moveForce = 600f; // Force applied for movement
+    [SerializeField] private float maxSpeed = 5f; // Maximum enemy speed
     [SerializeField] private float rotationSpeed = 120f;
     [SerializeField] private float detectionRange = 10f;
     
@@ -26,12 +27,21 @@ public class EnemyAI : MonoBehaviour
         if (rb == null) rb = GetComponent<Rigidbody2D>();
         if (playerController == null) playerController = GetComponent<PlayerController>();
         
+        // Setup rigidbody for floaty enemy physics
+        rb.bodyType = RigidbodyType2D.Dynamic;
+        rb.gravityScale = 0f;
+        rb.linearDamping = 2f; // Same drag as player for consistent feel
+        rb.angularDamping = 5f;
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        
         // Find player
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
         {
             player = playerObj.transform;
         }
+        
+        Debug.Log("EnemyAI initialized with floaty physics");
     }
     
     void Update()
@@ -52,9 +62,15 @@ public class EnemyAI : MonoBehaviour
         {
             lastKnownPlayerPosition = player.position;
             
-            // Move towards player
+            // Move towards player with force-based physics
             Vector2 directionToPlayer = (player.position - transform.position).normalized;
-            rb.AddForce(directionToPlayer * moveSpeed);
+            rb.AddForce(directionToPlayer * moveForce);
+            
+            // Limit maximum speed to keep enemy responsive
+            if (rb.linearVelocity.magnitude > maxSpeed)
+            {
+                rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
+            }
             
             // Rotate towards player
             float angle = Mathf.Atan2(directionToPlayer.y, directionToPlayer.x) * Mathf.Rad2Deg;
@@ -76,7 +92,13 @@ public class EnemyAI : MonoBehaviour
         {
             // Simple forward movement when player not in range
             Vector2 forwardDirection = transform.right;
-            rb.AddForce(forwardDirection * moveSpeed * 0.3f);
+            rb.AddForce(forwardDirection * moveForce * 0.3f);
+            
+            // Limit speed even when wandering
+            if (rb.linearVelocity.magnitude > maxSpeed * 0.5f)
+            {
+                rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed * 0.5f;
+            }
             
             // Shoot forward occasionally
             if (CanFire() && Random.Range(0f, 1f) < 0.1f)

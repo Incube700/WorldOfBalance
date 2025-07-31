@@ -11,21 +11,31 @@ public class Weapon : MonoBehaviour
     {
         if (firePoint == null)
         {
-            // Create fire point if not assigned
-            GameObject firePointObj = new GameObject("FirePoint");
-            firePointObj.transform.SetParent(transform);
-            firePointObj.transform.localPosition = new Vector3(spawnOffset, 0, 0);
-            firePoint = firePointObj.transform;
+            // Try to find existing FirePoint first
+            Transform existingFirePoint = transform.Find("FirePoint");
+            if (existingFirePoint != null)
+            {
+                firePoint = existingFirePoint;
+            }
+            else
+            {
+                // Create fire point if not assigned and not found
+                GameObject firePointObj = new GameObject("FirePoint");
+                firePointObj.transform.SetParent(transform);
+                firePointObj.transform.localPosition = new Vector3(spawnOffset, 0, 0);
+                firePoint = firePointObj.transform;
+            }
         }
+        
+        Debug.Log($"Weapon initialized with FirePoint at: {firePoint.localPosition}");
     }
     
     public void SpawnProjectile(Vector2 direction, GameObject owner)
     {
-        // Calculate spawn position
+        // Spawn bullet directly from FirePoint (no additional offset needed)
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
-        spawnPosition += (Vector3)(direction * 0.5f); // Small offset from tank
         
-        // Spawn projectile
+        // Spawn bullet at barrel tip
         GameObject projectileObj = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
         
         // Set up bullet

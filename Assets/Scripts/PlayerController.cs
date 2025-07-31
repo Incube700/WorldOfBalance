@@ -3,8 +3,9 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] private float moveForce = 1000f;
-    [SerializeField] private float maxSpeed = 8f;
+    [SerializeField] private float moveForce = 800f; // Force applied for movement
+    [SerializeField] private float maxSpeed = 6f; // Maximum tank speed
+    [SerializeField] private float linearDrag = 2f; // Drag for slight inertia feel
     [SerializeField] private float rotationSpeed = 180f;
     
     [Header("Combat Settings")]
@@ -16,6 +17,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private HealthSystem healthSystem;
     [SerializeField] private Weapon weapon;
+    [SerializeField] private InputController inputController;
     
     private float lastFireTime;
     private Camera mainCamera;
@@ -27,11 +29,19 @@ public class PlayerController : MonoBehaviour
         if (rb == null) rb = GetComponent<Rigidbody2D>();
         if (healthSystem == null) healthSystem = GetComponent<HealthSystem>();
         if (weapon == null) weapon = GetComponent<Weapon>();
+        if (inputController == null) inputController = FindObjectOfType<InputController>();
+        
+        // Setup rigidbody for floaty tank physics
+        rb.bodyType = RigidbodyType2D.Dynamic; // Change from Kinematic to Dynamic
+        rb.gravityScale = 0f; // No gravity in top-down
+        rb.linearDamping = linearDrag; // Add drag for inertia feel
+        rb.angularDamping = 5f; // Prevent unwanted rotation
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation; // Tank rotates via script only
         
         // Setup camera (не привязываем к игроку, чтобы она не вращалась)
         mainCamera = Camera.main;
         
-        Debug.Log("PlayerController initialized");
+        Debug.Log("PlayerController initialized with floaty physics");
     }
     
 
@@ -58,13 +68,21 @@ public class PlayerController : MonoBehaviour
     
     void HandleInput()
     {
-        // Get movement input
-        moveInput = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
-        
-        // Handle attack input
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+        if (inputController != null)
         {
-            attackPressed = true;
+            // Use InputController for both mobile and desktop input
+            moveInput = inputController.MovementInput;
+            attackPressed = inputController.FireInput;
+        }
+        else
+        {
+            // Fallback to direct input
+            moveInput = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+            
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+            {
+                attackPressed = true;
+            }
         }
     }
     
@@ -72,16 +90,17 @@ public class PlayerController : MonoBehaviour
     {
         if (moveInput.magnitude > 0.1f)
         {
-            // Apply force for movement
-            rb.AddForce(moveInput.normalized * moveForce * Time.deltaTime);
+            // Apply force for floaty tank movement with slight inertia
+            Vector2 force = moveInput.normalized * moveForce;
+            rb.AddForce(force);
             
-            // Limit speed
+            // Limit maximum speed to keep control responsive
             if (rb.linearVelocity.magnitude > maxSpeed)
             {
                 rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
             }
             
-            // Rotate towards movement direction
+            // Rotate towards movement direction - tank faces the direction it's moving
             float angle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation, 
@@ -109,14 +128,8 @@ public class PlayerController : MonoBehaviour
     
     Vector2 GetFireDirection()
     {
-        if (mainCamera == null) return transform.right;
-        
-        // Fire towards mouse
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorldPos.z = 0f;
-        
-        Vector2 direction = (mouseWorldPos - transform.position).normalized;
-        return direction;
+        // Tank fires in the direction it's facing (forward direction)
+        return transform.right; // In 2D, transform.right is the forward direction when rotation is 0
     }
     
     void Fire(Vector2 direction)

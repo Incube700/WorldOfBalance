@@ -4,7 +4,7 @@ public class InputController : MonoBehaviour
 {
     [Header("Input Settings")]
     [SerializeField] private bool useMobileInput = false;
-    [SerializeField] private GameObject joystick;
+    [SerializeField] private MobileJoystick mobileJoystick;
     
     private Vector2 movementInput;
     private bool fireInput;
@@ -25,10 +25,10 @@ public class InputController : MonoBehaviour
             useMobileInput = true;
         }
         
-        // Find joystick if not assigned
-        if (joystick == null)
+        // Find mobile joystick if not assigned
+        if (mobileJoystick == null)
         {
-            joystick = GameObject.Find("Joystick");
+            mobileJoystick = FindObjectOfType<MobileJoystick>();
         }
         
         Debug.Log($"InputManager initialized - Mobile: {isMobilePlatform}, UseMobileInput: {useMobileInput}");
@@ -59,8 +59,19 @@ public class InputController : MonoBehaviour
     
     void HandleMobileInput()
     {
-        // Simplified mobile input - fallback to keyboard
-        HandleKeyboardInput();
+        if (mobileJoystick != null)
+        {
+            // Get movement from mobile joystick
+            movementInput = mobileJoystick.Direction;
+            
+            // Fire input from joystick press or screen tap
+            fireInput = mobileJoystick.IsPressed || Input.touchCount > 0;
+        }
+        else
+        {
+            // Fallback to keyboard if no joystick found
+            HandleKeyboardInput();
+        }
     }
     
     public Vector2 GetMovementDirection()

@@ -1,7 +1,6 @@
 using UnityEngine;
-using Mirror;
 
-public class Projectile : NetworkBehaviour
+public class Projectile : MonoBehaviour
 {
     [Header("Projectile Settings")]
     [SerializeField] private float speed = 15f;
@@ -35,11 +34,8 @@ public class Projectile : NetworkBehaviour
         owner = projectileOwner;
         initialDirection = direction;
         
-        if (isServer)
-        {
-            // Set velocity on server
-            rb.linearVelocity = direction * speed;
-        }
+        // Set velocity
+        rb.linearVelocity = direction * speed;
     }
     
     void Update()
@@ -47,17 +43,12 @@ public class Projectile : NetworkBehaviour
         // Destroy if lifetime exceeded
         if (Time.time - spawnTime > lifetime)
         {
-            if (isServer)
-            {
-                NetworkServer.Destroy(gameObject);
-            }
+            DestroyProjectile();
         }
     }
     
     void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!isServer) return;
-        
         // Check if we hit a tank
         TankController tank = collision.gameObject.GetComponent<TankController>();
         if (tank != null && tank.gameObject != owner)
@@ -97,7 +88,7 @@ public class Projectile : NetworkBehaviour
             // Destroy projectile if no penetration power left
             if (currentPenetrationPower <= 0)
             {
-                NetworkServer.Destroy(gameObject);
+                DestroyProjectile();
                 return;
             }
         }
@@ -109,7 +100,7 @@ public class Projectile : NetworkBehaviour
         }
         else
         {
-            NetworkServer.Destroy(gameObject);
+            DestroyProjectile();
         }
     }
     
@@ -117,7 +108,7 @@ public class Projectile : NetworkBehaviour
     {
         if (bounceCount >= maxBounces)
         {
-            NetworkServer.Destroy(gameObject);
+            DestroyProjectile();
             return;
         }
         
@@ -137,7 +128,7 @@ public class Projectile : NetworkBehaviour
         // Destroy if no penetration power left
         if (currentPenetrationPower <= 0)
         {
-            NetworkServer.Destroy(gameObject);
+            DestroyProjectile();
         }
     }
     
@@ -155,10 +146,7 @@ public class Projectile : NetworkBehaviour
     
     void DestroyProjectile()
     {
-        if (isServer)
-        {
-            NetworkServer.Destroy(gameObject);
-        }
+        Destroy(gameObject);
         Debug.Log($"Projectile destroyed: {gameObject.name}");
     }
 }

@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using Mirror;
 
 public class TankCreator : EditorWindow
 {
@@ -9,9 +8,6 @@ public class TankCreator : EditorWindow
     {
         // Create main tank object
         GameObject tank = new GameObject("Tank");
-        
-        // Add NetworkIdentity
-        tank.AddComponent<NetworkIdentity>();
         
         // Add SpriteRenderer
         SpriteRenderer spriteRenderer = tank.AddComponent<SpriteRenderer>();
@@ -90,11 +86,10 @@ public class TankCreator : EditorWindow
         
         Debug.Log("✅ Tank created in scene with all components!");
         Debug.Log("📋 Components added:");
-        Debug.Log("  - NetworkIdentity");
         Debug.Log("  - SpriteRenderer (blue square)");
         Debug.Log("  - Rigidbody2D (Dynamic, Drag 0.5, Gravity 0)");
         Debug.Log("  - BoxCollider2D (1x1)");
-        Debug.Log("  - TankController (NetworkBehaviour)");
+        Debug.Log("  - TankController (MonoBehaviour)");
         Debug.Log("  - HealthSystem");
         Debug.Log("  - ArmorSystem");
         Debug.Log("  - ProjectileSpawner");
@@ -140,37 +135,20 @@ public class TankCreator : EditorWindow
         Debug.Log("✅ Tank deleted from scene (Mirror will spawn it automatically)");
     }
     
-    [MenuItem("Tools/Setup NetworkManager")]
-    public static void SetupNetworkManager()
+    [MenuItem("Tools/Setup Game Manager")]
+    public static void SetupGameManager()
     {
-        // Find or create NetworkManager
-        GameNetworkManager networkManager = FindObjectOfType<GameNetworkManager>();
+        // Find or create GameManager
+        GameObject gameManager = GameObject.Find("GameManager");
         
-        if (networkManager == null)
+        if (gameManager == null)
         {
-            GameObject networkManagerObj = new GameObject("NetworkManager");
-            networkManager = networkManagerObj.AddComponent<GameNetworkManager>();
-            
-            // Add NetworkManagerHUD
-            networkManagerObj.AddComponent<NetworkManagerHUD>();
-            
-            Debug.Log("✅ NetworkManager created");
+            gameManager = new GameObject("GameManager");
+            Debug.Log("✅ GameManager created");
         }
         
-        // Set player prefab
-        GameObject tankPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Tank.prefab");
-        if (tankPrefab != null)
-        {
-            networkManager.playerPrefab = tankPrefab;
-            Debug.Log("✅ NetworkManager configured with Tank.prefab");
-        }
-        else
-        {
-            Debug.LogWarning("⚠️ Tank.prefab not found! Create it first using 'Create Tank Prefab from Scene'");
-        }
-        
-        // Select NetworkManager
-        Selection.activeGameObject = networkManager.gameObject;
+        // Select GameManager
+        Selection.activeGameObject = gameManager;
     }
     
     [MenuItem("Tools/Complete Tank Setup")]
@@ -187,14 +165,13 @@ public class TankCreator : EditorWindow
         // Step 3: Delete from scene
         DeleteTankFromScene();
         
-        // Step 4: Setup NetworkManager
-        SetupNetworkManager();
+        // Step 4: Setup GameManager
+        SetupGameManager();
         
         Debug.Log("🎉 Complete Tank setup finished!");
         Debug.Log("🧪 Ready to test:");
         Debug.Log("  1. Press Play");
-        Debug.Log("  2. Press Host");
-        Debug.Log("  3. Tank should spawn and move");
+        Debug.Log("  2. Tank should spawn and move");
     }
     
     private static Sprite CreateDefaultSprite()

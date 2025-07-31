@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using Mirror;
 
 public class TankValidator : EditorWindow
 {
@@ -22,8 +21,8 @@ public class TankValidator : EditorWindow
         // Validate Tank prefab components
         ValidateTankPrefab(tankPrefab);
         
-        // Check NetworkManager
-        ValidateNetworkManager();
+        // Check GameManager
+        ValidateGameManager();
         
         // Check scripts compilation
         ValidateScripts();
@@ -35,16 +34,7 @@ public class TankValidator : EditorWindow
     {
         Debug.Log("📋 Validating Tank prefab components:");
         
-        // Check NetworkIdentity
-        NetworkIdentity networkIdentity = tankPrefab.GetComponent<NetworkIdentity>();
-        if (networkIdentity == null)
-        {
-            Debug.LogError("❌ NetworkIdentity missing on Tank prefab");
-        }
-        else
-        {
-            Debug.Log("✅ NetworkIdentity found");
-        }
+
         
         // Check SpriteRenderer
         SpriteRenderer spriteRenderer = tankPrefab.GetComponent<SpriteRenderer>();
@@ -133,36 +123,18 @@ public class TankValidator : EditorWindow
         }
     }
     
-    private static void ValidateNetworkManager()
+    private static void ValidateGameManager()
     {
-        Debug.Log("🌐 Validating NetworkManager:");
+        Debug.Log("🎮 Validating GameManager:");
         
-        GameNetworkManager networkManager = FindObjectOfType<GameNetworkManager>();
-        if (networkManager == null)
+        GameObject gameManager = GameObject.Find("GameManager");
+        if (gameManager == null)
         {
-            Debug.LogError("❌ GameNetworkManager not found in scene");
-            return;
-        }
-        
-        Debug.Log("✅ GameNetworkManager found");
-        
-        if (networkManager.playerPrefab == null)
-        {
-            Debug.LogError("❌ Player Prefab not set in NetworkManager");
+            Debug.LogWarning("⚠️ GameManager not found in scene");
         }
         else
         {
-            Debug.Log("✅ Player Prefab configured");
-        }
-        
-        NetworkManagerHUD hud = networkManager.GetComponent<NetworkManagerHUD>();
-        if (hud == null)
-        {
-            Debug.LogWarning("⚠️ NetworkManagerHUD missing");
-        }
-        else
-        {
-            Debug.Log("✅ NetworkManagerHUD found");
+            Debug.Log("✅ GameManager found");
         }
     }
     
@@ -170,15 +142,7 @@ public class TankValidator : EditorWindow
     {
         Debug.Log("📜 Validating scripts:");
         
-        // Check if Mirror is available
-        if (typeof(NetworkBehaviour) != null)
-        {
-            Debug.Log("✅ Mirror framework available");
-        }
-        else
-        {
-            Debug.LogError("❌ Mirror framework not available");
-        }
+
         
         // Check if Input System is available
         if (typeof(UnityEngine.InputSystem.InputAction) != null)

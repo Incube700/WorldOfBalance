@@ -1,10 +1,9 @@
 using UnityEngine;
-using Mirror;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
 
-public class TankController : NetworkBehaviour
+public class TankController : MonoBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private float moveForce = 1000f;
@@ -62,9 +61,24 @@ public class TankController : NetworkBehaviour
         Debug.Log($"Platform detected: {Application.platform}, Mobile: {isMobilePlatform}");
     }
     
-    public override void OnStartLocalPlayer()
+    void Start()
     {
-        base.OnStartLocalPlayer();
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
+        if (healthSystem == null) healthSystem = GetComponent<HealthSystem>();
+        if (armorSystem == null) armorSystem = GetComponent<ArmorSystem>();
+        if (projectileSpawner == null) projectileSpawner = GetComponent<ProjectileSpawner>();
+        
+        // Setup camera
+        mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            mainCamera.transform.SetParent(transform);
+            mainCamera.transform.localPosition = new Vector3(0, 0, -10);
+        }
+        
+        // Detect platform
+        isMobilePlatform = Application.isMobilePlatform;
+        Debug.Log($"Platform detected: {Application.platform}, Mobile: {isMobilePlatform}");
         
         // Platform-specific input setup
         useTouchInput = isMobilePlatform;
@@ -125,7 +139,7 @@ public class TankController : NetworkBehaviour
     
     void Update()
     {
-        if (!isLocalPlayer || IsDead()) return;
+        if (IsDead()) return;
         
         HandleInput();
         HandleMovement();
@@ -217,7 +231,7 @@ public class TankController : NetworkBehaviour
         if (attackPressed && CanFire())
         {
             Vector2 fireDirection = GetFireDirection();
-            CmdFire(fireDirection);
+            Fire(fireDirection);
             lastFireTime = Time.time;
             attackPressed = false;
         }
@@ -267,21 +281,13 @@ public class TankController : NetworkBehaviour
         }
     }
     
-    [Command]
-    void CmdFire(Vector2 direction)
+    void Fire(Vector2 direction)
     {
         if (projectileSpawner != null)
         {
             projectileSpawner.SpawnProjectile(direction, gameObject);
         }
         
-        // Call RPC to show effects on all clients
-        RpcOnFire(direction);
-    }
-    
-    [ClientRpc]
-    void RpcOnFire(Vector2 direction)
-    {
         // Play fire effects, sounds, etc.
         Debug.Log($"Fire effect played for {gameObject.name} in direction {direction}");
     }

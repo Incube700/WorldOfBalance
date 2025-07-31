@@ -140,11 +140,20 @@ public class EnemyAI : MonoBehaviour
         
         Debug.Log($"Enemy spawning projectile at pos: {spawnPosition}, rotation: {spawnRotation.eulerAngles}");
         
-        // Initialize bullet
-        Bullet bullet = projectileObj.GetComponent<Bullet>();
-        if (bullet != null)
+        // Пробуем новый BulletController в первую очередь
+        BulletController bulletController = projectileObj.GetComponent<BulletController>();
+        if (bulletController != null)
         {
-            bullet.Initialize(gameObject);
+            bulletController.Init(direction, gameObject);
+        }
+        else
+        {
+            // Fallback к старым системам
+            Bullet bullet = projectileObj.GetComponent<Bullet>();
+            if (bullet != null)
+            {
+                bullet.Initialize(direction, gameObject);
+            }
         }
         
         Debug.Log($"Enemy fired bullet from FirePoint direction");

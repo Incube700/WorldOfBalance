@@ -39,21 +39,29 @@ public class Weapon : MonoBehaviour
         
         Debug.Log($"Weapon spawning projectile at pos: {firePoint.position}, rotation: {firePoint.rotation.eulerAngles}");
         
-        // Initialize bullet with owner and direction
-        Bullet bullet = projectileObj.GetComponent<Bullet>();
-        Projectile projectile = projectileObj.GetComponent<Projectile>();
+        // Get fire direction from FirePoint
+        Vector2 fireDirection = firePoint.up;
         
-        if (bullet != null)
+        // Пробуем новый BulletController в первую очередь
+        BulletController bulletController = projectileObj.GetComponent<BulletController>();
+        if (bulletController != null)
         {
-            // Use FirePoint direction for precise control
-            Vector2 fireDirection = firePoint.up;
-            bullet.Initialize(fireDirection, owner);
+            bulletController.Init(fireDirection, owner);
         }
-        else if (projectile != null)
+        else
         {
-            // Use FirePoint direction for precise control
-            Vector2 fireDirection = firePoint.up;
-            projectile.Initialize(fireDirection, owner);
+            // Fallback к старым системам
+            Bullet bullet = projectileObj.GetComponent<Bullet>();
+            Projectile projectile = projectileObj.GetComponent<Projectile>();
+            
+            if (bullet != null)
+            {
+                bullet.Initialize(fireDirection, owner);
+            }
+            else if (projectile != null)
+            {
+                projectile.Initialize(fireDirection, owner);
+            }
         }
         
         Debug.Log($"Projectile spawned by {owner.name} from FirePoint");

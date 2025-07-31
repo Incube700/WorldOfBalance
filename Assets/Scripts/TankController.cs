@@ -138,11 +138,35 @@ public class TankController : MonoBehaviour
     
     void HandleMovement()
     {
-        if (moveInput.magnitude > 0.1f)
+        // Для AI и игрока используем разные подходы к движению
+        if (isPlayer)
         {
-            // Move tank
-            Vector2 movement = moveInput.normalized * moveSpeed * Time.deltaTime;
-            rb.MovePosition(rb.position + movement);
+            // Игрок: WASD относительно ориентации танка
+            float vertical = Input.GetAxis("Vertical");     // W/S
+            float horizontal = Input.GetAxis("Horizontal"); // A/D
+            
+            // Движение вперед/назад относительно корпуса танка
+            if (Mathf.Abs(vertical) > 0.1f)
+            {
+                Vector2 forward = transform.right; // Танк смотрит вправо в 2D
+                Vector2 movement = forward * vertical * moveSpeed * Time.deltaTime;
+                rb.MovePosition(rb.position + movement);
+            }
+            
+            // Поворот корпуса танка (не турели)
+            if (Mathf.Abs(horizontal) > 0.1f)
+            {
+                transform.Rotate(0, 0, -horizontal * rotationSpeed * Time.deltaTime);
+            }
+        }
+        else
+        {
+            // AI: движение к цели (старое поведение)
+            if (moveInput.magnitude > 0.1f)
+            {
+                Vector2 movement = moveInput.normalized * moveSpeed * Time.deltaTime;
+                rb.MovePosition(rb.position + movement);
+            }
         }
     }
     
@@ -211,22 +235,31 @@ public class TankController : MonoBehaviour
         
         Debug.Log($"{gameObject.name} spawning bullet at pos: {firePoint.position}, rotation: {firePoint.rotation.eulerAngles}");
         
-        // Initialize bullet - check for both bullet types
-        Bullet simpleBullet = bullet.GetComponent<Bullet>();
-        TankBullet tankBullet = bullet.GetComponent<TankBullet>();
-        Projectile projectile = bullet.GetComponent<Projectile>();
-        
-        if (simpleBullet != null)
+        // Пробуем новый BulletController в первую очередь
+        BulletController bulletController = bullet.GetComponent<BulletController>();
+        if (bulletController != null)
         {
-            simpleBullet.Initialize(direction, gameObject);
+            bulletController.Init(direction, gameObject);
         }
-        else if (tankBullet != null)
+        else
         {
-            tankBullet.Initialize(direction, gameObject);
-        }
-        else if (projectile != null)
-        {
-            projectile.Initialize(direction, gameObject);
+            // Fallback к старым системам
+            Bullet simpleBullet = bullet.GetComponent<Bullet>();
+            TankBullet tankBullet = bullet.GetComponent<TankBullet>();
+            Projectile projectile = bullet.GetComponent<Projectile>();
+            
+            if (simpleBullet != null)
+            {
+                simpleBullet.Initialize(direction, gameObject);
+            }
+            else if (tankBullet != null)
+            {
+                tankBullet.Initialize(direction, gameObject);
+            }
+            else if (projectile != null)
+            {
+                projectile.Initialize(direction, gameObject);
+            }
         }
         
         Debug.Log($"{gameObject.name} fired projectile in direction: {direction}");

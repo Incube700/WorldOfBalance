@@ -88,25 +88,28 @@ public class PlayerController : MonoBehaviour
     
     void HandleMovement()
     {
-        if (moveInput.magnitude > 0.1f)
+        // Получаем вертикальный и горизонтальный ввод
+        float vertical = moveInput.y;     // W/S - движение вперед/назад
+        float horizontal = moveInput.x;   // A/D - поворот влево/вправо
+        
+        // Движение относительно локальной ориентации танка
+        if (Mathf.Abs(vertical) > 0.1f)
         {
-            // Apply force for floaty tank movement with slight inertia
-            Vector2 force = moveInput.normalized * moveForce;
-            rb.AddForce(force);
-            
-            // Limit maximum speed to keep control responsive
-            if (rb.linearVelocity.magnitude > maxSpeed)
-            {
-                rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
-            }
-            
-            // Rotate towards movement direction - tank faces the direction it's moving
-            float angle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation, 
-                Quaternion.Euler(0, 0, angle), 
-                rotationSpeed * Time.deltaTime
-            );
+            // В 2D танк "смотрит" вправо (transform.right = forward)
+            Vector2 forward = transform.right;
+            rb.linearVelocity = forward * vertical * maxSpeed;
+        }
+        else
+        {
+            // Останавливаем танк если нет ввода движения
+            rb.linearVelocity = Vector2.zero;
+        }
+        
+        // Поворот вокруг собственной оси
+        if (Mathf.Abs(horizontal) > 0.1f)
+        {
+            // Поворот в 2D вокруг Z-оси
+            transform.Rotate(0, 0, -horizontal * rotationSpeed * Time.deltaTime);
         }
     }
     

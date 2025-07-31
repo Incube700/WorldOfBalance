@@ -20,17 +20,15 @@ public class BulletController : MonoBehaviour
     private int bounceCount = 0;
     private float spawnTime;
     
-    // Компоненты для столкновений
+    // Компоненты для столкновений (только 2D)
     private Collider2D col2D;
-    private Collider col3D;
     
     void Start()
     {
         spawnTime = Time.time;
         
-        // Получаем коллайдеры для проверки столкновений
+        // Получаем коллайдер для проверки столкновений (только 2D)
         col2D = GetComponent<Collider2D>();
-        col3D = GetComponent<Collider>();
         
         // Автоматически уничтожаем через время жизни
         Invoke(nameof(DestroySelf), lifeTime);
@@ -69,7 +67,7 @@ public class BulletController : MonoBehaviour
     
     void OnTriggerEnter2D(Collider2D collision)
     {
-        HandleCollision(collision.gameObject, collision.bounds.center);
+        HandleCollision(collision.gameObject, (Vector2)collision.bounds.center);
     }
     
     void OnCollisionEnter2D(Collision2D collision)
@@ -80,20 +78,9 @@ public class BulletController : MonoBehaviour
         HandleCollisionWithNormal(collision.gameObject, hitPoint, hitNormal);
     }
     
-    void OnTriggerEnter(Collider collision)
-    {
-        HandleCollision(collision.gameObject, collision.bounds.center);
-    }
+    // Удалены 3D методы - используем только 2D коллизии
     
-    void OnCollisionEnter(Collision collision)
-    {
-        Vector3 hitPoint = collision.contacts.Length > 0 ? collision.contacts[0].point : transform.position;
-        Vector3 hitNormal = collision.contacts.Length > 0 ? collision.contacts[0].normal : Vector3.up;
-        
-        HandleCollisionWithNormal(collision.gameObject, hitPoint, hitNormal);
-    }
-    
-    void HandleCollision(GameObject hitObject, Vector3 hitPoint)
+    void HandleCollision(GameObject hitObject, Vector2 hitPoint)
     {
         // Игнорируем столкновение с владельцем
         if (hitObject == owner) return;
@@ -109,15 +96,15 @@ public class BulletController : MonoBehaviour
         {
             // Попадание в стену - пытаемся сделать рикошет
             // Без нормали используем простое отражение от центра объекта
-            Vector3 wallCenter = hitObject.transform.position;
-            Vector3 toWall = (wallCenter - transform.position).normalized;
-            Vector3 reflectedDir = Vector3.Reflect(direction, -toWall);
+            Vector2 wallCenter = hitObject.transform.position;
+            Vector2 toWall = (wallCenter - (Vector2)transform.position).normalized;
+            Vector2 reflectedDir = Vector2.Reflect((Vector2)direction, -toWall);
             
             HandleBounce(reflectedDir);
         }
     }
     
-    void HandleCollisionWithNormal(GameObject hitObject, Vector3 hitPoint, Vector3 hitNormal)
+    void HandleCollisionWithNormal(GameObject hitObject, Vector2 hitPoint, Vector2 hitNormal)
     {
         // Игнорируем столкновение с владельцем
         if (hitObject == owner) return;
@@ -131,12 +118,12 @@ public class BulletController : MonoBehaviour
         else if (IsWall(hitObject))
         {
             // Рикошет от стены с правильной нормалью
-            Vector3 reflectedDir = Vector3.Reflect(direction, hitNormal);
+            Vector2 reflectedDir = Vector2.Reflect((Vector2)direction, hitNormal);
             HandleBounce(reflectedDir);
         }
     }
     
-    void HandleBounce(Vector3 reflectedDirection)
+    void HandleBounce(Vector2 reflectedDirection)
     {
         if (bounceCount >= maxBounces)
         {
@@ -145,14 +132,15 @@ public class BulletController : MonoBehaviour
             return;
         }
         
-        // Обновляем направление
-        direction = reflectedDirection.normalized;
+        // Обновляем направление (конвертируем в Vector3 для совместимости)
+        direction = new Vector3(reflectedDirection.x, reflectedDirection.y, 0);
         bounceCount++;
         
-        // Поворачиваем визуал в новом направлении
+        // Поворачиваем визуал в новом направлении  
         if (direction != Vector3.zero)
         {
-            transform.rotation = Quaternion.LookRotation(Vector3.forward, direction);
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
         
         Debug.Log($"Bullet bounced! New direction: {direction}, bounce #{bounceCount}/{maxBounces}");
@@ -175,7 +163,7 @@ public class BulletController : MonoBehaviour
                obj.layer == LayerMask.NameToLayer("Wall");
     }
     
-    void DealDamage(GameObject target, Vector3 hitPoint)
+    void DealDamage(GameObject target, Vector2 hitPoint)
     {
         Debug.Log($"Bullet hit {target.name} for {damage} damage at {hitPoint}");
         
@@ -186,7 +174,7 @@ public class BulletController : MonoBehaviour
         
         if (tank != null)
         {
-            tank.TakeDamage(damage, hitPoint, direction);
+            tank.TakeDamage(damage, hitPoint, (Vector2)direction);
         }
         else if (player != null)
         {

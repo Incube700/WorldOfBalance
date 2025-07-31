@@ -26,6 +26,12 @@ public class TestSceneBuilder : EditorWindow
         // Setup Camera
         SetupCamera();
         
+        // Create InputManager
+        CreateInputManager();
+        
+        // Create MobileUI
+        CreateMobileUI();
+        
         // Create LocalGameManager
         CreateGameManager();
         
@@ -63,7 +69,7 @@ public class TestSceneBuilder : EditorWindow
         
         Rigidbody2D playerRb = player.AddComponent<Rigidbody2D>();
         playerRb.bodyType = RigidbodyType2D.Dynamic;
-        playerRb.drag = 0.5f;
+        playerRb.linearDamping = 0.5f;
         playerRb.gravityScale = 0f;
         
         BoxCollider2D playerCollider = player.AddComponent<BoxCollider2D>();
@@ -94,7 +100,7 @@ public class TestSceneBuilder : EditorWindow
         
         Rigidbody2D enemyRb = enemy.AddComponent<Rigidbody2D>();
         enemyRb.bodyType = RigidbodyType2D.Dynamic;
-        enemyRb.drag = 0.5f;
+        enemyRb.linearDamping = 0.5f;
         enemyRb.gravityScale = 0f;
         
         BoxCollider2D enemyCollider = enemy.AddComponent<BoxCollider2D>();
@@ -181,6 +187,24 @@ public class TestSceneBuilder : EditorWindow
         gameManager.AddComponent<LocalGameManager>();
         
         Debug.Log("✅ LocalGameManager created");
+    }
+    
+    private static void CreateInputManager()
+    {
+        // Create InputManager GameObject
+        GameObject inputManager = new GameObject("InputManager");
+        inputManager.AddComponent<InputManager>();
+        
+        Debug.Log("✅ InputManager created");
+    }
+    
+    private static void CreateMobileUI()
+    {
+        // Create MobileUI GameObject
+        GameObject mobileUI = new GameObject("MobileUI");
+        mobileUI.AddComponent<MobileUI>();
+        
+        Debug.Log("✅ MobileUI created");
     }
     
     private static Sprite CreateDefaultSprite()

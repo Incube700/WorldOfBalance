@@ -226,7 +226,7 @@ public class TestAISceneBuilder : MonoBehaviour
         turretSprite.sortingOrder = 2;
         turretSprite.transform.localScale = new Vector3(0.7f, 0.7f, 1f);
         
-        var turretController = turret.AddComponent<EnemyTurretController>();
+        // Turret will be controlled by EnemyController
         
         Debug.Log("Враг создан");
     }

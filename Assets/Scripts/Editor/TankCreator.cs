@@ -38,8 +38,8 @@ public class TankCreator : EditorWindow
         // Add Rigidbody2D
         Rigidbody2D rb = tank.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Dynamic;
-        rb.drag = 0.5f;
-        rb.angularDrag = 0.05f;
+        rb.linearDamping = 0.5f;
+        rb.angularDamping = 0.05f;
         rb.gravityScale = 0f;
         rb.collisionDetection = CollisionDetectionMode2D.Continuous;
         rb.sleepMode = RigidbodySleepMode2D.NeverSleep;

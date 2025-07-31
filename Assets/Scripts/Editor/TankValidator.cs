@@ -56,7 +56,7 @@ public class TankValidator : EditorWindow
         else
         {
             if (rb.bodyType == RigidbodyType2D.Dynamic &&
-                rb.drag == 0.5f &&
+                rb.linearDamping == 0.5f &&
                 rb.gravityScale == 0f)
             {
                 Debug.Log("✅ Rigidbody2D configured correctly");

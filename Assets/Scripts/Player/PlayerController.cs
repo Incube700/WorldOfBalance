@@ -14,6 +14,7 @@ public class PlayerController : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private TankController tankController;
+    [SerializeField] private InputManager inputManager;
     
     private float lastFireTime;
     private Camera mainCamera;
@@ -22,6 +23,7 @@ public class PlayerController : MonoBehaviour
     {
         if (rb == null) rb = GetComponent<Rigidbody2D>();
         if (tankController == null) tankController = GetComponent<TankController>();
+        if (inputManager == null) inputManager = FindObjectOfType<InputManager>();
         
         mainCamera = Camera.main;
         if (mainCamera != null)
@@ -38,11 +40,10 @@ public class PlayerController : MonoBehaviour
     
     void HandleInput()
     {
-        // Movement
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+        if (inputManager == null) return;
         
-        Vector2 movement = new Vector2(horizontal, vertical);
+        // Movement
+        Vector2 movement = inputManager.GetMovementDirection();
         if (movement.magnitude > 0)
         {
             // Move
@@ -58,9 +59,9 @@ public class PlayerController : MonoBehaviour
         }
         
         // Shooting
-        if (Input.GetMouseButton(0) && CanFire())
+        if (inputManager.IsFiring() && CanFire())
         {
-            Vector2 fireDirection = GetFireDirection();
+            Vector2 fireDirection = inputManager.GetFireDirection(transform.position);
             Fire(fireDirection);
             lastFireTime = Time.time;
         }
@@ -71,16 +72,7 @@ public class PlayerController : MonoBehaviour
         return Time.time - lastFireTime >= fireRate;
     }
     
-    Vector2 GetFireDirection()
-    {
-        if (mainCamera == null) return transform.right;
-        
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorldPos.z = 0f;
-        
-        Vector2 direction = (mouseWorldPos - transform.position).normalized;
-        return direction;
-    }
+
     
     void Fire(Vector2 direction)
     {

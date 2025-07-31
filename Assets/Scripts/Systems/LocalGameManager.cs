@@ -62,8 +62,8 @@ public class LocalGameManager : MonoBehaviour
         }
         
         // Отключаем ИИ врагов
-        EnemyAIController[] enemies = FindObjectsOfType<EnemyAIController>();
-        foreach (EnemyAIController enemy in enemies)
+        EnemyController[] enemies = FindObjectsOfType<EnemyController>();
+        foreach (EnemyController enemy in enemies)
         {
             if (enemy != null)
                 enemy.enabled = false;
@@ -83,8 +83,8 @@ public class LocalGameManager : MonoBehaviour
         }
         
         // Включаем ИИ врагов
-        EnemyAIController[] enemies = FindObjectsOfType<EnemyAIController>();
-        foreach (EnemyAIController enemy in enemies)
+        EnemyController[] enemies = FindObjectsOfType<EnemyController>();
+        foreach (EnemyController enemy in enemies)
         {
             if (enemy != null)
                 enemy.enabled = true;

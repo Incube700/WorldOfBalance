@@ -176,7 +176,7 @@ public class TankController : MonoBehaviour
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began)
+            if (touch.phase == UnityEngine.TouchPhase.Began)
             {
                 attackPressed = true;
             }
@@ -219,10 +219,10 @@ public class TankController : MonoBehaviour
     
     void OnAttackPerformed(InputAction.CallbackContext context)
     {
-        if (isLocalPlayer && CanFire())
+        if (CanFire())
         {
             Vector2 fireDirection = GetFireDirection();
-            CmdFire(fireDirection);
+            Fire(fireDirection);
             lastFireTime = Time.time;
         }
     }

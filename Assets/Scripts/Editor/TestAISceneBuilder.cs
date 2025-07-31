@@ -211,7 +211,7 @@ public class TestAISceneBuilder : MonoBehaviour
         rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
         
         // Компоненты
-        var enemyAI = enemy.AddComponent<EnemyAIController>();
+        var enemyAI = enemy.AddComponent<EnemyController>();
         var healthSystem = enemy.AddComponent<HealthSystem>();
         var armorSystem = enemy.AddComponent<ArmorSystem>();
         

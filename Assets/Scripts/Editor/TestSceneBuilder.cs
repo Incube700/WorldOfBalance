@@ -26,11 +26,15 @@ public class TestSceneBuilder : EditorWindow
         // Setup Camera
         SetupCamera();
         
+        // Create LocalGameManager
+        CreateGameManager();
+        
         Debug.Log("✅ TestScene setup complete!");
         Debug.Log("🎮 Ready for local battle:");
         Debug.Log("  - Player: WASD + Mouse to shoot");
         Debug.Log("  - Enemy: AI controlled");
         Debug.Log("  - Ground: Collision for projectiles");
+        Debug.Log("  - Press SPACE to start battle!");
     }
     
     private static void ClearScene()
@@ -71,10 +75,10 @@ public class TestSceneBuilder : EditorWindow
         player.AddComponent<ProjectileSpawner>();
         player.AddComponent<PlayerController>();
         
-        // Position player
-        player.transform.position = new Vector3(-5f, 0f, 0f);
+        // Position player on left side
+        player.transform.position = new Vector3(-8f, 0f, 0f);
         
-        Debug.Log("✅ Player created");
+        Debug.Log("✅ Player created on left side");
     }
     
     private static void CreateEnemy()
@@ -102,8 +106,8 @@ public class TestSceneBuilder : EditorWindow
         enemy.AddComponent<ProjectileSpawner>();
         enemy.AddComponent<EnemyController>();
         
-        // Position enemy
-        enemy.transform.position = new Vector3(5f, 0f, 0f);
+        // Position enemy on right side
+        enemy.transform.position = new Vector3(8f, 0f, 0f);
         
         Debug.Log("✅ Enemy created");
     }
@@ -168,6 +172,15 @@ public class TestSceneBuilder : EditorWindow
         }
         
         Debug.Log("✅ Camera configured");
+    }
+    
+    private static void CreateGameManager()
+    {
+        // Create GameManager GameObject
+        GameObject gameManager = new GameObject("LocalGameManager");
+        gameManager.AddComponent<LocalGameManager>();
+        
+        Debug.Log("✅ LocalGameManager created");
     }
     
     private static Sprite CreateDefaultSprite()

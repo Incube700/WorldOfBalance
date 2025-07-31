@@ -43,6 +43,8 @@ public class EnemyController : MonoBehaviour
     
     void HandleAI()
     {
+        if (player == null) return;
+        
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
         playerInRange = distanceToPlayer <= detectionRange;
         
@@ -72,11 +74,15 @@ public class EnemyController : MonoBehaviour
         }
         else
         {
-            // Patrol behavior - move to last known position
-            Vector2 directionToLastKnown = (lastKnownPlayerPosition - (Vector2)transform.position).normalized;
-            if (Vector2.Distance(transform.position, lastKnownPlayerPosition) > 1f)
+            // Simple forward movement when player not in range
+            Vector2 forwardDirection = transform.right;
+            rb.AddForce(forwardDirection * moveSpeed * 0.3f);
+            
+            // Shoot forward occasionally
+            if (CanFire() && Random.Range(0f, 1f) < 0.1f)
             {
-                rb.AddForce(directionToLastKnown * moveSpeed * 0.5f);
+                Fire(forwardDirection);
+                lastFireTime = Time.time;
             }
         }
     }

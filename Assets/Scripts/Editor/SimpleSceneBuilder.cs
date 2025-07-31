@@ -103,7 +103,7 @@ public class SimpleSceneBuilder : MonoBehaviour
         rigidbody.gravityScale = 0f;
         rigidbody.linearDamping = 0.5f;
         
-        enemy.AddComponent<EnemyAIController>();
+        enemy.AddComponent<EnemyController>();
         enemy.AddComponent<HealthSystem>();
         enemy.AddComponent<ArmorSystem>();
     }

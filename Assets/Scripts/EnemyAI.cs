@@ -118,17 +118,35 @@ public class EnemyAI : MonoBehaviour
     {
         if (projectilePrefab == null) return;
         
-        Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
-        spawnPosition += (Vector3)(direction * 0.5f);
+        Vector3 spawnPosition;
+        Quaternion spawnRotation;
         
-        GameObject projectileObj = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+        if (firePoint != null)
+        {
+            // Use FirePoint position and rotation (direction from turret)
+            spawnPosition = firePoint.position;
+            spawnRotation = firePoint.rotation;
+        }
+        else
+        {
+            // Fallback: calculate rotation from direction if no FirePoint
+            spawnPosition = transform.position;
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+            spawnRotation = Quaternion.Euler(0, 0, angle);
+        }
+        
+        // Spawn projectile with correct position and rotation
+        GameObject projectileObj = Instantiate(projectilePrefab, spawnPosition, spawnRotation);
+        
+        Debug.Log($"Enemy spawning projectile at pos: {spawnPosition}, rotation: {spawnRotation.eulerAngles}");
+        
+        // Initialize bullet
         Bullet bullet = projectileObj.GetComponent<Bullet>();
         if (bullet != null)
         {
-            // Передаем GameObject owner (this.gameObject) как второй параметр
-            bullet.Initialize(direction, gameObject);
+            bullet.Initialize(gameObject);
         }
         
-        Debug.Log($"Enemy fired bullet in direction: {direction}");
+        Debug.Log($"Enemy fired bullet from FirePoint direction");
     }
 } 

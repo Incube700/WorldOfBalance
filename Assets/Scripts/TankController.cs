@@ -14,7 +14,7 @@ public class TankController : MonoBehaviour
     [Header("Turret Settings")]
     [SerializeField] private Transform turret;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private float maxTurretAngle = 30f; // Maximum turret rotation from body
+    [SerializeField] private float maxTurretAngle = 40f; // Maximum turret rotation from body
     [SerializeField] private float turretRotationSpeed = 180f; // degrees per second
     
     [Header("Combat Settings")]
@@ -196,20 +196,27 @@ public class TankController : MonoBehaviour
     {
         if (bulletPrefab == null || firePoint == null) return;
         
-        // Calculate fire direction from turret
-        Vector2 fireDirection = turret.right; // Turret forward direction
+        // Spawn bullet at FirePoint position and rotation
+        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         
-        // Spawn bullet
-        GameObject bullet = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
+        Debug.Log($"{gameObject.name} spawning bullet at pos: {firePoint.position}, rotation: {firePoint.rotation.eulerAngles}");
         
-        // Initialize bullet
+        // Initialize bullet - check for both bullet types
+        Bullet simpleBullet = bullet.GetComponent<Bullet>();
         TankBullet tankBullet = bullet.GetComponent<TankBullet>();
-        if (tankBullet != null)
+        
+        if (simpleBullet != null)
         {
+            simpleBullet.Initialize(gameObject);
+        }
+        else if (tankBullet != null)
+        {
+            // For TankBullet, calculate direction from rotation
+            Vector2 fireDirection = firePoint.up; // Use firePoint's up direction
             tankBullet.Initialize(fireDirection, gameObject);
         }
         
-        Debug.Log($"{gameObject.name} fired! Direction: {fireDirection}");
+        Debug.Log($"{gameObject.name} fired from FirePoint!");
     }
     
     public void TakeDamage(float damage, Vector2 hitPoint, Vector2 hitDirection)

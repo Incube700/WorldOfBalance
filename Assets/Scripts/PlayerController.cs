@@ -114,8 +114,7 @@ public class PlayerController : MonoBehaviour
     {
         if (attackPressed && CanFire())
         {
-            Vector2 fireDirection = GetFireDirection();
-            Fire(fireDirection);
+            Fire();
             lastFireTime = Time.time;
             attackPressed = false;
         }
@@ -126,20 +125,14 @@ public class PlayerController : MonoBehaviour
         return Time.time - lastFireTime >= fireRate && !IsDead();
     }
     
-    Vector2 GetFireDirection()
-    {
-        // Tank fires in the direction it's facing (forward direction)
-        return transform.right; // In 2D, transform.right is the forward direction when rotation is 0
-    }
-    
-    void Fire(Vector2 direction)
+    void Fire()
     {
         if (weapon != null)
         {
-            weapon.SpawnProjectile(direction, gameObject);
+            weapon.SpawnProjectile(gameObject);
         }
         
-        Debug.Log($"Fire effect played for {gameObject.name} in direction {direction}");
+        Debug.Log($"Fire effect played for {gameObject.name}");
     }
     
     public void TakeDamage(float damage, Vector2 hitPoint, GameObject attacker)

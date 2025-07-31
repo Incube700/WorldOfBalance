@@ -30,22 +30,23 @@ public class Weapon : MonoBehaviour
         Debug.Log($"Weapon initialized with FirePoint at: {firePoint.localPosition}");
     }
     
-    public void SpawnProjectile(Vector2 direction, GameObject owner)
+    public void SpawnProjectile(GameObject owner)
     {
-        // Spawn bullet directly from FirePoint (no additional offset needed)
-        Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
+        if (projectilePrefab == null || firePoint == null) return;
         
-        // Spawn bullet at barrel tip
-        GameObject projectileObj = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+        // Spawn projectile at FirePoint position and rotation
+        GameObject projectileObj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
         
-        // Set up bullet
+        Debug.Log($"Weapon spawning projectile at pos: {firePoint.position}, rotation: {firePoint.rotation.eulerAngles}");
+        
+        // Initialize bullet with owner
         Bullet bullet = projectileObj.GetComponent<Bullet>();
         if (bullet != null)
         {
-            bullet.Initialize(direction, owner);
+            bullet.Initialize(owner);
         }
         
-        Debug.Log($"Projectile spawned by {owner.name} in direction {direction}");
+        Debug.Log($"Projectile spawned by {owner.name} from FirePoint");
     }
     
     // Helper method to get fire direction from mouse position
@@ -70,31 +71,9 @@ public class Weapon : MonoBehaviour
         return direction;
     }
     
-    // Method to spawn projectile with custom settings
-    public void SpawnProjectileWithSettings(Vector2 direction, GameObject owner, float customSpeed = -1f, float customDamage = -1f)
+    // Method to spawn projectile with custom settings - now simplified
+    public void SpawnProjectileWithSettings(GameObject owner)
     {
-        // Calculate spawn position
-        Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
-        spawnPosition += (Vector3)(direction * 0.5f);
-        
-        // Spawn projectile
-        GameObject projectileObj = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
-        
-        // Set up bullet with custom settings
-        Bullet bullet = projectileObj.GetComponent<Bullet>();
-        if (bullet != null)
-        {
-            bullet.Initialize(direction, owner);
-            
-            // Apply custom settings if provided
-            if (customSpeed > 0)
-            {
-                Rigidbody2D rb = projectileObj.GetComponent<Rigidbody2D>();
-                if (rb != null)
-                {
-                    rb.linearVelocity = direction * customSpeed;
-                }
-            }
-        }
+        SpawnProjectile(owner);
     }
 }

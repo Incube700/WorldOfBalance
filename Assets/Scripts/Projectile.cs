@@ -1,35 +1,46 @@
 using UnityEngine;
 
-public class Bullet : MonoBehaviour
+/// <summary>
+/// Simple projectile that moves forward using transform.up * speed with Rigidbody2D
+/// Perfect for minimalist tank arcade game
+/// </summary>
+public class Projectile : MonoBehaviour
 {
-    [Header("Bullet Settings")]
+    [Header("Projectile Settings")]
     [SerializeField] private float speed = 6f;
-    [SerializeField] private float damage = 2f;
+    [SerializeField] private float damage = 25f;
     [SerializeField] private float lifetime = 5f;
     [SerializeField] private int maxBounces = 4;
     
-    [Header("Components")]
-    [SerializeField] private Rigidbody2D rb;
-    
-    private int bounceCount = 0;
+    private Rigidbody2D rb;
     private GameObject owner;
+    private int bounceCount = 0;
     private float spawnTime;
     
     void Start()
     {
-        if (rb == null) rb = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
         spawnTime = Time.time;
         
-        // Configure rigidbody for consistent velocity
+        // Configure rigidbody
         rb.gravityScale = 0f;
         rb.linearDamping = 0f;
         rb.angularDamping = 0f;
         
         // Move in direction opposite from turret (backward from turret direction)
-        Vector2 moveDirection = -transform.up; // Opposite to turret direction
+        Vector2 moveDirection = -transform.up; // Opposite to turret direction  
         rb.linearVelocity = moveDirection * speed;
         
-        Debug.Log($"Bullet moving in direction: {moveDirection}, velocity: {rb.linearVelocity}, rotation: {transform.eulerAngles.z}°");
+        Debug.Log($"Projectile moving in direction: {moveDirection}, velocity: {rb.linearVelocity}, rotation: {transform.eulerAngles.z}°");
+    }
+    
+    void Update()
+    {
+        // Destroy projectile after lifetime
+        if (Time.time - spawnTime > lifetime)
+        {
+            DestroyProjectile();
+        }
     }
     
     public void Initialize(GameObject projectileOwner)
@@ -37,48 +48,34 @@ public class Bullet : MonoBehaviour
         owner = projectileOwner;
     }
     
-    void Update()
-    {
-        // Destroy bullet after lifetime expires
-        if (Time.time - spawnTime > lifetime)
-        {
-            DestroyBullet();
-        }
-    }
-    
     void OnCollisionEnter2D(Collision2D collision)
     {
-        // Ignore collisions with the owner (tank that fired this bullet)
+        // Ignore collision with owner
         if (collision.gameObject == owner) return;
         
-        // Check what we hit - tanks first
-        PlayerController player = collision.gameObject.GetComponent<PlayerController>();
-        EnemyAI enemy = collision.gameObject.GetComponent<EnemyAI>();
-        
-        if (player != null || enemy != null)
+        // Check what we hit
+        if (IsTarget(collision.gameObject))
         {
-            // Hit a tank - handle tank collision
-            HandleTankHit(collision);
-        }
-        else if (collision.gameObject.CompareTag("Wall") || collision.gameObject.name.Contains("Wall"))
-        {
-            // Hit a wall - bounce off
-            HandleWallBounce(collision);
+            HandleTargetHit(collision);
         }
         else
         {
-            // Hit something else (ground, etc.) - also bounce instead of destroying
-            Debug.Log($"Bullet hit: {collision.gameObject.name} - bouncing");
             HandleWallBounce(collision);
         }
     }
     
-    void HandleTankHit(Collision2D collision)
+    bool IsTarget(GameObject hitObject)
     {
-        // Get hit point
+        return hitObject.GetComponent<PlayerController>() != null || 
+               hitObject.GetComponent<TankController>() != null || 
+               hitObject.GetComponent<EnemyAI>() != null;
+    }
+    
+    void HandleTargetHit(Collision2D collision)
+    {
         Vector2 hitPoint = collision.contacts.Length > 0 ? collision.contacts[0].point : transform.position;
         
-        // Deal damage to tank
+        // Deal damage to different tank types
         PlayerController player = collision.gameObject.GetComponent<PlayerController>();
         TankController tank = collision.gameObject.GetComponent<TankController>();
         EnemyAI enemy = collision.gameObject.GetComponent<EnemyAI>();
@@ -100,39 +97,39 @@ public class Bullet : MonoBehaviour
             }
         }
         
-        DestroyBullet();
+        DestroyProjectile();
     }
     
     void HandleWallBounce(Collision2D collision)
     {
         if (bounceCount >= maxBounces)
         {
-            DestroyBullet();
+            DestroyProjectile();
             return;
         }
         
         if (collision.contacts.Length == 0)
         {
-            DestroyBullet();
+            DestroyProjectile();
             return;
         }
         
-        // Get contact info and calculate reflection
+        // Calculate reflection
         Vector2 hitNormal = collision.contacts[0].normal;
         Vector2 incomingDirection = rb.linearVelocity.normalized;
         Vector2 reflectedDirection = Vector2.Reflect(incomingDirection, hitNormal);
         
-        // Apply reflected velocity (maintain opposite direction concept)
+        // Apply reflected velocity (maintain opposite direction concept)  
         rb.linearVelocity = reflectedDirection * speed;
         
-        // Update transform rotation to match new direction
+        // Update rotation to match new direction
         float angle = Mathf.Atan2(reflectedDirection.y, reflectedDirection.x) * Mathf.Rad2Deg - 90f;
         transform.rotation = Quaternion.Euler(0, 0, angle);
         
         bounceCount++;
     }
     
-    void DestroyBullet()
+    void DestroyProjectile()
     {
         Destroy(gameObject);
     }

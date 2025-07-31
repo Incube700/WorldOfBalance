@@ -7,11 +7,11 @@ using UnityEngine;
 public class TankBullet : MonoBehaviour
 {
     [Header("Bullet Settings")]
-    [SerializeField] private float speed = 12f;
+    [SerializeField] private float speed = 6f;
     [SerializeField] private float damage = 26f;
     [SerializeField] private float penetration = 51f;
     [SerializeField] private float lifetime = 8f;
-    [SerializeField] private int maxBounces = 5;
+    [SerializeField] private int maxBounces = 4;
     
     // Private variables
     private Rigidbody2D rb;
@@ -44,17 +44,20 @@ public class TankBullet : MonoBehaviour
     {
         owner = bulletOwner;
         
+        // Move in direction opposite from turret (backward from turret direction)
+        Vector2 moveDirection = -direction.normalized; // Opposite to turret direction
+        
         // Set bullet velocity
         if (rb != null)
         {
-            rb.linearVelocity = direction.normalized * speed;
+            rb.linearVelocity = moveDirection * speed;
         }
         
         // Rotate bullet to face movement direction (for visual)
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
         
-        Debug.Log($"Bullet initialized by {bulletOwner.name}, direction: {direction}, speed: {speed}");
+        Debug.Log($"TankBullet initialized by {bulletOwner.name}, original direction: {direction}, move direction: {moveDirection}, speed: {speed}");
     }
     
     void OnCollisionEnter2D(Collision2D collision)
@@ -127,7 +130,7 @@ public class TankBullet : MonoBehaviour
         // Calculate reflection direction
         Vector2 reflectedDirection = Vector2.Reflect(bulletDirection, hitNormal);
         
-        // Apply new velocity
+        // Apply new velocity (maintain opposite direction concept)
         rb.linearVelocity = reflectedDirection * speed;
         
         // Update bullet rotation

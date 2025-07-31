@@ -25,8 +25,8 @@ public class Bullet : MonoBehaviour
         rb.linearDamping = 0f;
         rb.angularDamping = 0f;
         
-        // Move in direction opposite from turret (backward from turret direction)
-        Vector2 moveDirection = -transform.up; // Opposite to turret direction
+        // Move forward in the direction the projectile is facing (proper direction)
+        Vector2 moveDirection = transform.up; // Forward direction from turret
         rb.linearVelocity = moveDirection * speed;
         
         Debug.Log($"Bullet moving in direction: {moveDirection}, velocity: {rb.linearVelocity}, rotation: {transform.eulerAngles.z}°");
@@ -35,6 +35,19 @@ public class Bullet : MonoBehaviour
     public void Initialize(GameObject projectileOwner)
     {
         owner = projectileOwner;
+    }
+    
+    public void Initialize(Vector2 direction, GameObject projectileOwner)
+    {
+        owner = projectileOwner;
+        
+        // Override velocity with specific direction (useful for manual control)
+        if (rb != null)
+        {
+            rb.linearVelocity = direction.normalized * speed;
+        }
+        
+        Debug.Log($"Bullet initialized with custom direction: {direction}, by {projectileOwner.name}");
     }
     
     void Update()

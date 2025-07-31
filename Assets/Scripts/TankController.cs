@@ -196,6 +196,16 @@ public class TankController : MonoBehaviour
     {
         if (bulletPrefab == null || firePoint == null) return;
         
+        // Calculate fire direction from FirePoint
+        Vector2 fireDirection = firePoint.up;
+        
+        // Use command pattern for firing
+        FireCommand(fireDirection);
+    }
+    
+    // Command method for firing (similar to [Command] in Mirror)
+    void FireCommand(Vector2 direction)
+    {
         // Spawn bullet at FirePoint position and rotation
         GameObject bullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         
@@ -204,19 +214,22 @@ public class TankController : MonoBehaviour
         // Initialize bullet - check for both bullet types
         Bullet simpleBullet = bullet.GetComponent<Bullet>();
         TankBullet tankBullet = bullet.GetComponent<TankBullet>();
+        Projectile projectile = bullet.GetComponent<Projectile>();
         
         if (simpleBullet != null)
         {
-            simpleBullet.Initialize(gameObject);
+            simpleBullet.Initialize(direction, gameObject);
         }
         else if (tankBullet != null)
         {
-            // For TankBullet, calculate direction from rotation
-            Vector2 fireDirection = firePoint.up; // Use firePoint's up direction
-            tankBullet.Initialize(fireDirection, gameObject);
+            tankBullet.Initialize(direction, gameObject);
+        }
+        else if (projectile != null)
+        {
+            projectile.Initialize(direction, gameObject);
         }
         
-        Debug.Log($"{gameObject.name} fired from FirePoint!");
+        Debug.Log($"{gameObject.name} fired projectile in direction: {direction}");
     }
     
     public void TakeDamage(float damage, Vector2 hitPoint, Vector2 hitDirection)

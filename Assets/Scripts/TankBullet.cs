@@ -44,8 +44,8 @@ public class TankBullet : MonoBehaviour
     {
         owner = bulletOwner;
         
-        // Move in direction opposite from turret (backward from turret direction)
-        Vector2 moveDirection = -direction.normalized; // Opposite to turret direction
+        // Move forward in the direction specified (proper direction)
+        Vector2 moveDirection = direction.normalized; // Forward direction from turret
         
         // Set bullet velocity
         if (rb != null)

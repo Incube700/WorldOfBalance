@@ -45,17 +45,20 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
     {
         if (!isDragging) return;
         
-        Vector2 position = RectTransformUtility.ScreenPointToLocalPointInRectangle(
+        bool success = RectTransformUtility.ScreenPointToLocalPointInRectangle(
             background, eventData.position, eventData.pressEventCamera, out Vector2 localPoint);
         
-        // Calculate input
-        Vector2 clampedInput = Vector2.ClampMagnitude(localPoint, maxRadius);
-        input = clampedInput / maxRadius;
-        
-        // Move handle
-        if (handle != null)
+        if (success)
         {
-            handle.anchoredPosition = input * maxRadius;
+            // Calculate input
+            Vector2 clampedInput = Vector2.ClampMagnitude(localPoint, maxRadius);
+            input = clampedInput / maxRadius;
+            
+            // Move handle
+            if (handle != null)
+            {
+                handle.anchoredPosition = input * maxRadius;
+            }
         }
     }
     

@@ -49,7 +49,8 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
             background, eventData.position, eventData.pressEventCamera, out Vector2 localPoint);
         
         // Calculate input
-        input = Vector2.ClampMagnitude(localPoint, maxRadius) / maxRadius;
+        Vector2 clampedInput = Vector2.ClampMagnitude(localPoint, maxRadius);
+        input = clampedInput / maxRadius;
         
         // Move handle
         if (handle != null)

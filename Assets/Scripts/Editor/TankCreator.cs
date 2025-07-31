@@ -88,7 +88,16 @@ public class TankCreator : EditorWindow
         // Select the tank in hierarchy
         Selection.activeGameObject = tank;
         
-        Debug.Log("Tank created in scene with all components!");
+        Debug.Log("✅ Tank created in scene with all components!");
+        Debug.Log("📋 Components added:");
+        Debug.Log("  - NetworkIdentity");
+        Debug.Log("  - SpriteRenderer (blue square)");
+        Debug.Log("  - Rigidbody2D (Dynamic, Drag 0.5, Gravity 0)");
+        Debug.Log("  - BoxCollider2D (1x1)");
+        Debug.Log("  - TankController (NetworkBehaviour)");
+        Debug.Log("  - HealthSystem");
+        Debug.Log("  - ArmorSystem");
+        Debug.Log("  - ProjectileSpawner");
     }
     
     [MenuItem("Tools/Create Tank Prefab from Scene")]
@@ -99,7 +108,7 @@ public class TankCreator : EditorWindow
         
         if (tankInScene == null)
         {
-            Debug.LogError("No Tank found in scene! Create one first using 'Create Tank in Scene'");
+            Debug.LogError("❌ No Tank found in scene! Create one first using 'Create Tank in Scene'");
             return;
         }
         
@@ -107,10 +116,28 @@ public class TankCreator : EditorWindow
         string prefabPath = "Assets/Prefabs/Tank.prefab";
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(tankInScene, prefabPath);
         
-        Debug.Log($"Tank prefab created at {prefabPath}");
+        Debug.Log($"✅ Tank prefab created at {prefabPath}");
         
         // Select the prefab
         Selection.activeObject = prefab;
+    }
+    
+    [MenuItem("Tools/Delete Tank from Scene")]
+    public static void DeleteTankFromScene()
+    {
+        // Find tank in scene
+        GameObject tankInScene = GameObject.Find("Tank");
+        
+        if (tankInScene == null)
+        {
+            Debug.LogWarning("⚠️ No Tank found in scene to delete");
+            return;
+        }
+        
+        // Delete tank from scene
+        DestroyImmediate(tankInScene);
+        
+        Debug.Log("✅ Tank deleted from scene (Mirror will spawn it automatically)");
     }
     
     [MenuItem("Tools/Setup NetworkManager")]
@@ -126,6 +153,8 @@ public class TankCreator : EditorWindow
             
             // Add NetworkManagerHUD
             networkManagerObj.AddComponent<NetworkManagerHUD>();
+            
+            Debug.Log("✅ NetworkManager created");
         }
         
         // Set player prefab
@@ -133,15 +162,39 @@ public class TankCreator : EditorWindow
         if (tankPrefab != null)
         {
             networkManager.playerPrefab = tankPrefab;
-            Debug.Log("NetworkManager configured with Tank.prefab");
+            Debug.Log("✅ NetworkManager configured with Tank.prefab");
         }
         else
         {
-            Debug.LogWarning("Tank.prefab not found! Create it first.");
+            Debug.LogWarning("⚠️ Tank.prefab not found! Create it first using 'Create Tank Prefab from Scene'");
         }
         
         // Select NetworkManager
         Selection.activeGameObject = networkManager.gameObject;
+    }
+    
+    [MenuItem("Tools/Complete Tank Setup")]
+    public static void CompleteTankSetup()
+    {
+        Debug.Log("🚀 Starting complete Tank setup...");
+        
+        // Step 1: Create Tank in scene
+        CreateTankInScene();
+        
+        // Step 2: Create prefab
+        CreateTankPrefabFromScene();
+        
+        // Step 3: Delete from scene
+        DeleteTankFromScene();
+        
+        // Step 4: Setup NetworkManager
+        SetupNetworkManager();
+        
+        Debug.Log("🎉 Complete Tank setup finished!");
+        Debug.Log("🧪 Ready to test:");
+        Debug.Log("  1. Press Play");
+        Debug.Log("  2. Press Host");
+        Debug.Log("  3. Tank should spawn and move");
     }
     
     private static Sprite CreateDefaultSprite()

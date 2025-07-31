@@ -63,6 +63,9 @@ public class TankCreator : EditorWindow
         // Add ProjectileSpawner
         tank.AddComponent<ProjectileSpawner>();
         
+        // Add PlayerController for local control
+        tank.AddComponent<PlayerController>();
+        
         // Create turret child
         GameObject turret = new GameObject("Turret");
         turret.transform.SetParent(tank.transform);
@@ -93,6 +96,7 @@ public class TankCreator : EditorWindow
         Debug.Log("  - HealthSystem");
         Debug.Log("  - ArmorSystem");
         Debug.Log("  - ProjectileSpawner");
+        Debug.Log("  - PlayerController (for local control)");
     }
     
     [MenuItem("Tools/Create Tank Prefab from Scene")]

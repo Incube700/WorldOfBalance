@@ -59,26 +59,6 @@ public class TankController : MonoBehaviour
         // Detect platform
         isMobilePlatform = Application.isMobilePlatform;
         Debug.Log($"Platform detected: {Application.platform}, Mobile: {isMobilePlatform}");
-    }
-    
-    void Start()
-    {
-        if (rb == null) rb = GetComponent<Rigidbody2D>();
-        if (healthSystem == null) healthSystem = GetComponent<HealthSystem>();
-        if (armorSystem == null) armorSystem = GetComponent<ArmorSystem>();
-        if (projectileSpawner == null) projectileSpawner = GetComponent<ProjectileSpawner>();
-        
-        // Setup camera
-        mainCamera = Camera.main;
-        if (mainCamera != null)
-        {
-            mainCamera.transform.SetParent(transform);
-            mainCamera.transform.localPosition = new Vector3(0, 0, -10);
-        }
-        
-        // Detect platform
-        isMobilePlatform = Application.isMobilePlatform;
-        Debug.Log($"Platform detected: {Application.platform}, Mobile: {isMobilePlatform}");
         
         // Platform-specific input setup
         useTouchInput = isMobilePlatform;

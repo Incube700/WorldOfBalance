@@ -32,6 +32,9 @@ public class GameManager : MonoBehaviour
         if (enemyTank == null)
             enemyTank = GameObject.FindGameObjectWithTag("Enemy")?.GetComponent<TankController>();
         
+        // Reset tank positions to prevent wall collision
+        ResetTankPositions();
+        
         // Setup camera
         if (gameCamera == null)
             gameCamera = Camera.main;
@@ -39,14 +42,33 @@ public class GameManager : MonoBehaviour
         if (gameCamera != null)
         {
             gameCamera.orthographic = true;
-            gameCamera.orthographicSize = 10f;
+            gameCamera.orthographicSize = 8f;
             gameCamera.transform.position = new Vector3(0, 0, -10);
         }
         
-        // Show start menu
-        ShowStartMenu();
+        // Start game immediately (no menu for now)
+        StartGame();
         
         Debug.Log("GameManager initialized");
+    }
+    
+    void ResetTankPositions()
+    {
+        // Reset player tank position
+        if (playerTank != null)
+        {
+            playerTank.transform.position = new Vector3(-4f, 0f, 0f);
+            playerTank.transform.rotation = Quaternion.identity;
+        }
+        
+        // Reset enemy tank position  
+        if (enemyTank != null)
+        {
+            enemyTank.transform.position = new Vector3(4f, 0f, 0f);
+            enemyTank.transform.rotation = Quaternion.identity;
+        }
+        
+        Debug.Log("Tank positions reset");
     }
     
     void Update()

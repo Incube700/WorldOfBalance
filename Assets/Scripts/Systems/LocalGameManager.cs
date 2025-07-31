@@ -7,7 +7,7 @@ public class LocalGameManager : MonoBehaviour
     [SerializeField] private bool isGamePaused = false;
     
     [Header("Player References")]
-    [SerializeField] private TankController player;
+    [SerializeField] private PlayerController player;
     [SerializeField] private HealthSystem playerHealth;
     
     public static LocalGameManager Instance { get; private set; }
@@ -28,7 +28,7 @@ public class LocalGameManager : MonoBehaviour
     void Start()
     {
         if (player == null)
-            player = FindObjectOfType<TankController>();
+            player = FindObjectOfType<PlayerController>();
             
         if (playerHealth == null && player != null)
             playerHealth = player.GetComponent<HealthSystem>();
@@ -53,17 +53,17 @@ public class LocalGameManager : MonoBehaviour
     
     void DisableGameComponents()
     {
-        // Отключаем все танки до старта игры
-        TankController[] tanks = FindObjectsOfType<TankController>();
-        foreach (TankController tank in tanks)
+        // Отключаем всех игроков до старта игры
+        PlayerController[] players = FindObjectsOfType<PlayerController>();
+        foreach (PlayerController player in players)
         {
-            if (tank != null)
-                tank.enabled = false;
+            if (player != null)
+                player.enabled = false;
         }
         
         // Отключаем ИИ врагов
-        EnemyController[] enemies = FindObjectsOfType<EnemyController>();
-        foreach (EnemyController enemy in enemies)
+        EnemyAI[] enemies = FindObjectsOfType<EnemyAI>();
+        foreach (EnemyAI enemy in enemies)
         {
             if (enemy != null)
                 enemy.enabled = false;
@@ -74,17 +74,17 @@ public class LocalGameManager : MonoBehaviour
     
     public void EnableGameComponents()
     {
-        // Включаем все танки
-        TankController[] tanks = FindObjectsOfType<TankController>();
-        foreach (TankController tank in tanks)
+        // Включаем всех игроков
+        PlayerController[] players = FindObjectsOfType<PlayerController>();
+        foreach (PlayerController player in players)
         {
-            if (tank != null)
-                tank.enabled = true;
+            if (player != null)
+                player.enabled = true;
         }
         
         // Включаем ИИ врагов
-        EnemyController[] enemies = FindObjectsOfType<EnemyController>();
-        foreach (EnemyController enemy in enemies)
+        EnemyAI[] enemies = FindObjectsOfType<EnemyAI>();
+        foreach (EnemyAI enemy in enemies)
         {
             if (enemy != null)
                 enemy.enabled = true;

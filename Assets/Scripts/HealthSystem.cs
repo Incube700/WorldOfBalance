@@ -11,7 +11,7 @@ public class HealthSystem : MonoBehaviour
     [SerializeField] private Color deathColor = Color.gray;
     
     private SpriteRenderer spriteRenderer;
-    private TankController tankController;
+    private PlayerController playerController;
     
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
@@ -20,7 +20,7 @@ public class HealthSystem : MonoBehaviour
     void Start()
     {
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
-        if (tankController == null) tankController = GetComponent<TankController>();
+        if (playerController == null) playerController = GetComponent<PlayerController>();
         
         currentHealth = maxHealth;
     }
@@ -55,10 +55,10 @@ public class HealthSystem : MonoBehaviour
             spriteRenderer.color = deathColor;
         }
         
-        // Disable tank controller
-        if (tankController != null)
+        // Disable player controller
+        if (playerController != null)
         {
-            tankController.enabled = false;
+            playerController.enabled = false;
         }
         
         // Disable Rigidbody2D
@@ -96,10 +96,10 @@ public class HealthSystem : MonoBehaviour
             spriteRenderer.color = Color.white;
         }
         
-        // Re-enable tank controller
-        if (tankController != null)
+        // Re-enable player controller
+        if (playerController != null)
         {
-            tankController.enabled = true;
+            playerController.enabled = true;
         }
         
         // Re-enable Rigidbody2D

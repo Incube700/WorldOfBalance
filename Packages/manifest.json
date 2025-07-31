@@ -12,6 +12,6 @@
     "com.unity.textmeshpro": "3.0.6",
     "com.unity.timeline": "1.7.5",
     "com.unity.ugui": "1.0.0",
-    "com.mirror-networking.mirror": "https://github.com/MirrorNetworking/Mirror.git"
+    "com.vis2k.mirror": "https://github.com/vis2k/Mirror.git?path=/Assets/Mirror"
   }
 }

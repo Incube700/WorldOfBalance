@@ -153,7 +153,6 @@ namespace WorldOfBalance.UI
         
         void OnMusicVolumeChanged(float value)
         {
-            // Find AudioManager without namespace complexity
             var audioManager = FindObjectOfType<AudioManager>();
             if (audioManager != null)
             {
@@ -168,7 +167,6 @@ namespace WorldOfBalance.UI
         
         void OnSFXVolumeChanged(float value)
         {
-            // Find AudioManager without namespace complexity
             var audioManager = FindObjectOfType<AudioManager>();
             if (audioManager != null)
             {

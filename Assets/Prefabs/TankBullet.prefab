@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8888888888888888891}
   - component: {fileID: 8888888888888888892}
   - component: {fileID: 8888888888888888893}
+  - component: {fileID: 5638661056295908480}
   m_Layer: 0
   m_Name: TankBullet
   m_TagString: Untagged
@@ -171,3 +172,20 @@ MonoBehaviour:
   penetration: 51
   lifetime: 8
   maxBounces: 4
+--- !u!114 &5638661056295908480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8888888888888888888}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c8d9f2e4b5a6c7d8e9f0a1b2c3d4e5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 15
+  lifeTime: 8
+  damage: 26
+  maxBounces: 4
+  showDebugRays: 1

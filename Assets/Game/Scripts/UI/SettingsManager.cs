@@ -124,9 +124,10 @@ namespace WorldOfBalance.UI
             }
             
             // Play sound effect
-            if (WorldOfBalance.Audio.AudioManager.Instance != null)
+            var audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager != null)
             {
-                WorldOfBalance.Audio.AudioManager.Instance.OnButtonClick();
+                audioManager.OnButtonClick();
             }
         }
         
@@ -143,17 +144,20 @@ namespace WorldOfBalance.UI
             }
             
             // Play sound effect
-            if (WorldOfBalance.Audio.AudioManager.Instance != null)
+            var audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager != null)
             {
-                WorldOfBalance.Audio.AudioManager.Instance.OnButtonClick();
+                audioManager.OnButtonClick();
             }
         }
         
         void OnMusicVolumeChanged(float value)
         {
-            if (WorldOfBalance.Audio.AudioManager.Instance != null)
+            // Find AudioManager without namespace complexity
+            var audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager != null)
             {
-                WorldOfBalance.Audio.AudioManager.Instance.MusicVolume = value;
+                audioManager.MusicVolume = value;
             }
             
             if (musicVolumeText != null)
@@ -164,9 +168,11 @@ namespace WorldOfBalance.UI
         
         void OnSFXVolumeChanged(float value)
         {
-            if (WorldOfBalance.Audio.AudioManager.Instance != null)
+            // Find AudioManager without namespace complexity
+            var audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager != null)
             {
-                WorldOfBalance.Audio.AudioManager.Instance.SFXVolume = value;
+                audioManager.SFXVolume = value;
             }
             
             if (sfxVolumeText != null)
@@ -257,9 +263,10 @@ namespace WorldOfBalance.UI
             Debug.Log("SettingsManager: Reset to defaults");
             
             // Play sound effect
-            if (WorldOfBalance.Audio.AudioManager.Instance != null)
+            var audioManager = FindObjectOfType<AudioManager>();
+            if (audioManager != null)
             {
-                WorldOfBalance.Audio.AudioManager.Instance.OnButtonClick();
+                audioManager.OnButtonClick();
             }
         }
         

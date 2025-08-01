@@ -2,13 +2,11 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 
-namespace WorldOfBalance.Audio
-{
-    /// <summary>
-    /// Менеджер звуковых эффектов и музыки для WorldOfBalance.
-    /// Обеспечивает централизованное управление всеми аудио ресурсами игры.
-    /// </summary>
-    public class AudioManager : MonoBehaviour
+/// <summary>
+/// Менеджер звуковых эффектов и музыки для WorldOfBalance.
+/// Обеспечивает централизованное управление всеми аудио ресурсами игры.
+/// </summary>
+public class AudioManager : MonoBehaviour
     {
         [Header("Audio Sources")]
         [SerializeField] private AudioSource musicSource;
@@ -280,4 +278,3 @@ namespace WorldOfBalance.Audio
             musicSource.volume = musicVolume;
         }
     }
-}

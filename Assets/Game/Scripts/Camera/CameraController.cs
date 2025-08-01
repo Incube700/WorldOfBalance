@@ -1,12 +1,10 @@
 using UnityEngine;
 
-namespace WorldOfBalance.Camera
-{
-    /// <summary>
-    /// Контроллер камеры для отслеживания танка в WorldOfBalance.
-    /// Обеспечивает плавное следование за игроком с ограничениями по границам уровня.
-    /// </summary>
-    public class CameraController : MonoBehaviour
+/// <summary>
+/// Контроллер камеры для отслеживания танка в WorldOfBalance.
+/// Обеспечивает плавное следование за игроком с ограничениями по границам уровня.
+/// </summary>
+public class CameraController : MonoBehaviour
     {
         [Header("Target Settings")]
         [SerializeField] private Transform target;
@@ -267,4 +265,3 @@ namespace WorldOfBalance.Camera
             }
         }
     }
-}

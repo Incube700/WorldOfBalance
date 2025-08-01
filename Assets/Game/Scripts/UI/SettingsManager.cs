@@ -123,12 +123,8 @@ namespace WorldOfBalance.UI
                 settingsPanel.SetActive(true);
             }
             
-            // Play sound effect
-            var audioManager = FindObjectOfType<AudioManager>();
-            if (audioManager != null)
-            {
-                audioManager.OnButtonClick();
-            }
+            // Sound effects temporarily disabled - focus on game loop first
+            // TODO: Add audio system later
         }
         
         /// <summary>
@@ -143,21 +139,14 @@ namespace WorldOfBalance.UI
                 settingsPanel.SetActive(false);
             }
             
-            // Play sound effect
-            var audioManager = FindObjectOfType<AudioManager>();
-            if (audioManager != null)
-            {
-                audioManager.OnButtonClick();
-            }
+            // Sound effects temporarily disabled - focus on game loop first
+            // TODO: Add audio system later
         }
         
         void OnMusicVolumeChanged(float value)
         {
-            var audioManager = FindObjectOfType<AudioManager>();
-            if (audioManager != null)
-            {
-                audioManager.MusicVolume = value;
-            }
+            // AudioManager temporarily disabled - focus on game loop first
+            // TODO: Add audio system later
             
             if (musicVolumeText != null)
             {
@@ -167,11 +156,8 @@ namespace WorldOfBalance.UI
         
         void OnSFXVolumeChanged(float value)
         {
-            var audioManager = FindObjectOfType<AudioManager>();
-            if (audioManager != null)
-            {
-                audioManager.SFXVolume = value;
-            }
+            // AudioManager temporarily disabled - focus on game loop first
+            // TODO: Add audio system later
             
             if (sfxVolumeText != null)
             {
@@ -260,12 +246,8 @@ namespace WorldOfBalance.UI
             
             Debug.Log("SettingsManager: Reset to defaults");
             
-            // Play sound effect
-            var audioManager = FindObjectOfType<AudioManager>();
-            if (audioManager != null)
-            {
-                audioManager.OnButtonClick();
-            }
+            // Sound effects temporarily disabled - focus on game loop first
+            // TODO: Add audio system later
         }
         
         /// <summary>

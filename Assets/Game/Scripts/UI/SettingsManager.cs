@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using WorldOfBalance.Audio;
 
 namespace WorldOfBalance.UI
 {
@@ -125,9 +124,9 @@ namespace WorldOfBalance.UI
             }
             
             // Play sound effect
-            if (AudioManager.Instance != null)
+            if (WorldOfBalance.Audio.AudioManager.Instance != null)
             {
-                AudioManager.Instance.OnButtonClick();
+                WorldOfBalance.Audio.AudioManager.Instance.OnButtonClick();
             }
         }
         
@@ -144,17 +143,17 @@ namespace WorldOfBalance.UI
             }
             
             // Play sound effect
-            if (AudioManager.Instance != null)
+            if (WorldOfBalance.Audio.AudioManager.Instance != null)
             {
-                AudioManager.Instance.OnButtonClick();
+                WorldOfBalance.Audio.AudioManager.Instance.OnButtonClick();
             }
         }
         
         void OnMusicVolumeChanged(float value)
         {
-            if (AudioManager.Instance != null)
+            if (WorldOfBalance.Audio.AudioManager.Instance != null)
             {
-                AudioManager.Instance.MusicVolume = value;
+                WorldOfBalance.Audio.AudioManager.Instance.MusicVolume = value;
             }
             
             if (musicVolumeText != null)
@@ -165,9 +164,9 @@ namespace WorldOfBalance.UI
         
         void OnSFXVolumeChanged(float value)
         {
-            if (AudioManager.Instance != null)
+            if (WorldOfBalance.Audio.AudioManager.Instance != null)
             {
-                AudioManager.Instance.SFXVolume = value;
+                WorldOfBalance.Audio.AudioManager.Instance.SFXVolume = value;
             }
             
             if (sfxVolumeText != null)
@@ -258,9 +257,9 @@ namespace WorldOfBalance.UI
             Debug.Log("SettingsManager: Reset to defaults");
             
             // Play sound effect
-            if (AudioManager.Instance != null)
+            if (WorldOfBalance.Audio.AudioManager.Instance != null)
             {
-                AudioManager.Instance.OnButtonClick();
+                WorldOfBalance.Audio.AudioManager.Instance.OnButtonClick();
             }
         }
         
